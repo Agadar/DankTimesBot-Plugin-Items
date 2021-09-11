@@ -39,11 +39,11 @@ export class Plugin extends AbstractPlugin {
    * @override
    */
   public getPluginSpecificCommands(): BotCommand[] {
-    const infoCmd = new BotCommand(Plugin.INFO_CMD, "prints info about the Items plugin", this.itemsInfo.bind(this));
-    const inventoryCmd = new BotCommand(Plugin.INVENTORY_CMD, "", this.inventory.bind(this), false);
-    const shopCmd = new BotCommand(Plugin.SHOP_CMD, "", this.shop.bind(this), false);
-    const buyCmd = new BotCommand(Plugin.BUY_CMD, "", this.buy.bind(this), false);
-    const sellCmd = new BotCommand(Plugin.SELL_CMD, "", this.sell.bind(this), false);
+    const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Items plugin", this.itemsInfo.bind(this));
+    const inventoryCmd = new BotCommand([Plugin.INVENTORY_CMD], "", this.inventory.bind(this), false);
+    const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
+    const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
+    const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
     return [infoCmd, inventoryCmd, shopCmd, buyCmd, sellCmd];
   }
 
