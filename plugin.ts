@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
@@ -50,7 +51,7 @@ export class Plugin extends AbstractPlugin {
   /**
    * info command
    */
-  private itemsInfo(chat: Chat, user: User, msg: any, match: string[]): string {
+  private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     return "The Item plugin supports the following commands:\n\n"
       + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
       + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
@@ -61,7 +62,7 @@ export class Plugin extends AbstractPlugin {
   /**
    * inventory command
    */
-  private inventory(chat: Chat, user: User, msg: any, match: string[]): string {
+  private inventory(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const chatInventoryManager = this.getOrCreateInventoryManager(chat);
     const inventory = chatInventoryManager.getOrCreateInventory(user);
 
@@ -82,7 +83,7 @@ export class Plugin extends AbstractPlugin {
   /**
    * shop command
    */
-  private shop(chat: Chat, user: User, msg: any, match: string[]): string {
+  private shop(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const shopInventory = this.getOrCreateShopInventory(chat);
 
     if (shopInventory.length === 0) {
@@ -104,11 +105,11 @@ export class Plugin extends AbstractPlugin {
   /**
    * buy command
    */
-  private buy(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (match.length < 2) {
+  private buy(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
       return "You have to specify what you want to buy!";
     }
-    const itemName = match[1].toLowerCase();
+    const itemName = match.toLowerCase();
     const shopInventory = this.getOrCreateShopInventory(chat);
     const item = shopInventory.find((shopItem) => shopItem.name().toLowerCase() === itemName);
 
@@ -133,11 +134,11 @@ export class Plugin extends AbstractPlugin {
   /**
    * sell command
    */
-  private sell(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (match.length < 2) {
+  private sell(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
       return "You have to specify what you want to sell!";
     }
-    const itemName = match[1].toLowerCase();
+    const itemName = match.toLowerCase();
     const inventoryManager = this.getOrCreateInventoryManager(chat);
     const inventory = inventoryManager.getOrCreateInventory(user);
     const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === itemName);
