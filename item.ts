@@ -16,10 +16,6 @@ export class Item {
         return this.prototype.name;
     }
 
-    public stackable(): boolean {
-        return this.prototype.stackable;
-    }
-
     public sameItemTypeAs(other: Item) {
         return other.prototype === this.prototype;
     }
@@ -43,9 +39,9 @@ export class Item {
     public prettyString(): string {
         let prettified = "";
         if (this.prototype.icon) {
-            prettified += `[${this.prototype.icon}] `;
+            prettified += `${this.prototype.icon} `;
         }
-        prettified += this.prototype.name;
+        prettified += `<b>${this.prototype.name}</b>`;
         return prettified;
     }
 

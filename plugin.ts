@@ -28,12 +28,14 @@ export class Plugin extends AbstractPlugin {
   private readonly inventoryManagers = new Map<number, ChatInventoryManager>();
   private readonly shopInventories = new Map<number, Item[]>();
   private readonly scoreMedians = new Map<number, number>();
+  private readonly itemProtoTypes = new Map<number, ItemProtoType>();
 
   constructor() {
     super("Items", "1.0.0-alpha");
 
-    this.subscribeToPluginEvent(PluginEvent.BotStartup, this.updateScoreMedians.bind(this));
-    this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.updateScoreMedians.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.BotStartup, this.loadData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.updateScoreMediansAndPersistData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.BotShutdown, this.persistData.bind(this));
   }
 
   /**
@@ -70,11 +72,16 @@ export class Plugin extends AbstractPlugin {
       return "Your inventory is empty.";
     }
 
-    let inventoryStr = "You have the following items:";
+    const scoreMedian = this.getOrCreateScoreMedian(chat);
+    let inventoryStr = "You have the following items:\n";
     inventory.forEach((item) => {
       inventoryStr += `\n${item.prettyString()}`;
-      if (item.stackable()) {
-        inventoryStr += ` x ${item.stackSize}`;
+      if (item.stackSize > 1) {
+        inventoryStr += ` (<i>${item.stackSize}</i>)`;
+      }
+      inventoryStr += ` worth <i>${item.sellPrice(scoreMedian)}</i> points`;
+      if (item.stackSize > 1) {
+        inventoryStr += ' each';
       }
     });
     return inventoryStr;
@@ -89,15 +96,17 @@ export class Plugin extends AbstractPlugin {
     if (shopInventory.length === 0) {
       return "The shop is all out of stock.";
     }
-
     const scoreMedian = this.getOrCreateScoreMedian(chat);
     let inventoryStr = "The shop has the following item(s) for sale:\n";
     shopInventory.forEach((item) => {
       inventoryStr += `\n${item.prettyString()}`;
-      if (item.stackable()) {
-        inventoryStr += ` x ${item.stackSize}`;
+      if (item.stackSize > 1) {
+        inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` for ${item.buyPrice(scoreMedian)} points`;
+      inventoryStr += ` for <i>${item.buyPrice(scoreMedian)}</i> points`;
+      if (item.stackSize > 1) {
+        inventoryStr += ' each';
+      }
     });
     return inventoryStr;
   }
@@ -128,7 +137,7 @@ export class Plugin extends AbstractPlugin {
     const inventory = inventoryManager.getOrCreateInventory(user);
     this.moveToInventory(shopInventory, inventory, item);
 
-    return `Bought ${item.prettyString()} for ${-buyPrice} points!`;
+    return `Bought ${item.prettyString()} for <i>${-buyPrice}</i> points!`;
   }
 
   /**
@@ -153,7 +162,7 @@ export class Plugin extends AbstractPlugin {
     const shopInventory = this.getOrCreateShopInventory(chat);
     this.moveToInventory(inventory, shopInventory, item);
 
-    return `Sold ${item.prettyString()} for ${sellPrice} points!`;
+    return `Sold ${item.prettyString()} for <i>${sellPrice}</i> points!`;
   }
 
   private getOrCreateInventoryManager(chat: Chat): ChatInventoryManager {
@@ -185,7 +194,7 @@ export class Plugin extends AbstractPlugin {
     return median;
   }
 
-  private updateScoreMedians(eventArgs: EmptyEventArguments): void {
+  private updateScoreMediansAndPersistData(eventArgs: EmptyEventArguments): void {
     const chatIds = Array.from(this.scoreMedians.keys());
     chatIds.forEach((chatId) => {
       const chat = this.getChat(chatId);
@@ -198,6 +207,7 @@ export class Plugin extends AbstractPlugin {
         this.scoreMedians.set(chatId, newScoreMedian);
       }
     });
+    this.persistData();
   }
 
   private clearDataOfChat(chatId: number): void {
@@ -220,32 +230,34 @@ export class Plugin extends AbstractPlugin {
   }
 
   private moveToInventory(from: Item[], to: Item[], item: Item): void {
-    if (item.stackable()) {
-      if (item.stackSize == 1) {
-        from.splice(from.indexOf(item), 1);
-
-      } else {
-        item.stackSize--;
-      }
-      const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
-
-      if (itemInTargetInventory) {
-        itemInTargetInventory.stackSize++;
-
-      } else {
-        to.push(item.copy());
-      }
+    if (item.stackSize == 1) {
+      from.splice(from.indexOf(item), 1);
 
     } else {
-      from.splice(from.indexOf(item), 1);
-      to.push(item);
+      item.stackSize--;
+    }
+    const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
+
+    if (itemInTargetInventory) {
+      itemInTargetInventory.stackSize++;
+
+    } else {
+      to.push(item.copy());
     }
   }
 
-  // Temporary function just to fill the shop with test items
+  // For now, all new chats just get a hard-coded 1000 stonks.
   private generateStonks(): Item[] {
-    const prototype = new ItemProtoType(0, "Stonks", 0.1, 0.095, "🗠", false, false, false, true);
+    const prototype = new ItemProtoType(0, "Stonks", 0.1, 0.095, "📈", false, false, false);
     const item = new Item(prototype, 1000);
     return [item];
+  }
+
+  private loadData(): void {
+    // TODO
+  }
+
+  private persistData(): void {
+    // TODO
   }
 }
