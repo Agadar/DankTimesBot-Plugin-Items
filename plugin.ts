@@ -6,8 +6,8 @@ import { User } from "../../src/chat/user/user";
 import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/empty-event-arguments";
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
-
 import { ChatInventoryManager } from "./chat-inventory-manager";
+import { ChatItemsData } from "./chat-items-data";
 import { Item } from "./item";
 import { ItemProtoType } from "./item-prototype";
 
@@ -24,11 +24,15 @@ export class Plugin extends AbstractPlugin {
   private static readonly BUY_REASON = "buy.item";
   private static readonly SELL_REASON = "sell.item";
 
-  // Chat-specific managers
-  private readonly inventoryManagers = new Map<number, ChatInventoryManager>();
-  private readonly shopInventories = new Map<number, Item[]>();
-  private readonly scoreMedians = new Map<number, number>();
-  private readonly itemProtoTypes = new Map<number, ItemProtoType>();
+  // Files
+  private static readonly ITEMS_CHATS_DATA_FILE = "items-chats-data.json";
+  private static readonly ITEMS_PROTOTYPES_FILE = "items-prototypes.json"
+
+  // Misc.
+  private chatsItemsData = new Map<number, ChatItemsData>();
+  private itemProtoTypes = new Map<number, ItemProtoType>([
+    [0, new ItemProtoType(0, "Stonks", 0.1, 0.095, "📈", false, false, false)]
+  ]);
 
   constructor() {
     super("Items", "1.0.0-alpha");
@@ -65,21 +69,20 @@ export class Plugin extends AbstractPlugin {
    * inventory command
    */
   private inventory(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    const chatInventoryManager = this.getOrCreateInventoryManager(chat);
-    const inventory = chatInventoryManager.getOrCreateInventory(user);
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
 
     if (inventory.length === 0) {
       return "Your inventory is empty.";
     }
 
-    const scoreMedian = this.getOrCreateScoreMedian(chat);
     let inventoryStr = "You have the following items:\n";
     inventory.forEach((item) => {
       inventoryStr += `\n${item.prettyString()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` worth <i>${item.sellPrice(scoreMedian)}</i> points`;
+      inventoryStr += ` worth <i>${item.sellPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += ' each';
       }
@@ -91,19 +94,18 @@ export class Plugin extends AbstractPlugin {
    * shop command
    */
   private shop(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    const shopInventory = this.getOrCreateShopInventory(chat);
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
 
-    if (shopInventory.length === 0) {
+    if (chatItemsData.shopInventory.length === 0) {
       return "The shop is all out of stock.";
     }
-    const scoreMedian = this.getOrCreateScoreMedian(chat);
     let inventoryStr = "The shop has the following item(s) for sale:\n";
-    shopInventory.forEach((item) => {
+    chatItemsData.shopInventory.forEach((item) => {
       inventoryStr += `\n${item.prettyString()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` for <i>${item.buyPrice(scoreMedian)}</i> points`;
+      inventoryStr += ` for <i>${item.buyPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += ' each';
       }
@@ -119,23 +121,21 @@ export class Plugin extends AbstractPlugin {
       return "You have to specify what you want to buy!";
     }
     const itemName = match.toLowerCase();
-    const shopInventory = this.getOrCreateShopInventory(chat);
-    const item = shopInventory.find((shopItem) => shopItem.name().toLowerCase() === itemName);
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const item = chatItemsData.shopInventory.find((shopItem) => shopItem.name().toLowerCase() === itemName);
 
     if (!item) {
       return "The shop doesn't have that item!";
     }
-    const scoreMedian = this.getOrCreateScoreMedian(chat);
-    let buyPrice = item.buyPrice(scoreMedian);
+    let buyPrice = item.buyPrice(chatItemsData.scoreMedian);
 
     if (user.score < buyPrice) {
       return "You can't afford that item!";
     }
     const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
     buyPrice = chat.alterUserScore(alterScoreArgs);
-    const inventoryManager = this.getOrCreateInventoryManager(chat);
-    const inventory = inventoryManager.getOrCreateInventory(user);
-    this.moveToInventory(shopInventory, inventory, item);
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+    this.moveToInventory(chatItemsData.shopInventory, inventory, item);
 
     return `Bought ${item.prettyString()} for <i>${-buyPrice}</i> points!`;
   }
@@ -148,72 +148,46 @@ export class Plugin extends AbstractPlugin {
       return "You have to specify what you want to sell!";
     }
     const itemName = match.toLowerCase();
-    const inventoryManager = this.getOrCreateInventoryManager(chat);
-    const inventory = inventoryManager.getOrCreateInventory(user);
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
     const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === itemName);
 
     if (!item) {
       return "You don't have that item!";
     }
-    const scoreMedian = this.getOrCreateScoreMedian(chat);
-    let sellPrice = item.sellPrice(scoreMedian);
+    let sellPrice = item.sellPrice(chatItemsData.scoreMedian);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
-    const shopInventory = this.getOrCreateShopInventory(chat);
-    this.moveToInventory(inventory, shopInventory, item);
+    this.moveToInventory(inventory, chatItemsData.shopInventory, item);
 
     return `Sold ${item.prettyString()} for <i>${sellPrice}</i> points!`;
   }
 
-  private getOrCreateInventoryManager(chat: Chat): ChatInventoryManager {
-    let manager = this.inventoryManagers.get(chat.id);
-    if (!manager) {
-      manager = new ChatInventoryManager();
-      this.inventoryManagers.set(chat.id, manager);
+  private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
+    let data = this.chatsItemsData.get(chat.id);
+    if (!data) {
+      data = new ChatItemsData(chat.id);
+      data.scoreMedian = this.calculateScoreMedian(chat);    
+      data.shopInventory.push(new Item(this.itemProtoTypes.get(0), 1000));  // For now, all chats just get 1k stonks.
+      this.chatsItemsData.set(chat.id, data);
     }
-    return manager;
-  }
-
-  private getOrCreateShopInventory(chat: Chat): Item[] {
-    let shopInventory = this.shopInventories.get(chat.id);
-    if (!shopInventory) {
-      shopInventory = new Array<Item>();
-      this.shopInventories.set(chat.id, shopInventory);
-      shopInventory.push(...this.generateStonks());  // For now, we just push 1000 stonks in there.
-    }
-    return shopInventory;
-  }
-
-  private getOrCreateScoreMedian(chat: Chat): number {
-    let median = this.scoreMedians.get(chat.id);
-
-    if (!median) {
-      median = this.calculateScoreMedian(chat);
-      this.scoreMedians.set(chat.id, median);
-    }
-    return median;
+    return data;
   }
 
   private updateScoreMediansAndPersistData(eventArgs: EmptyEventArguments): void {
-    const chatIds = Array.from(this.scoreMedians.keys());
+    const chatIds = Array.from(this.chatsItemsData.keys());
     chatIds.forEach((chatId) => {
       const chat = this.getChat(chatId);
 
       if (!chat) {
-        this.clearDataOfChat(chatId);
+        this.chatsItemsData.delete(chatId);
 
       } else {
         const newScoreMedian = this.calculateScoreMedian(chat);
-        this.scoreMedians.set(chatId, newScoreMedian);
+        this.chatsItemsData.get(chatId).scoreMedian = newScoreMedian;
       }
     });
     this.persistData();
-  }
-
-  private clearDataOfChat(chatId: number): void {
-    this.scoreMedians.delete(chatId);
-    this.shopInventories.delete(chatId);
-    this.inventoryManagers.delete(chatId);
   }
 
   private calculateScoreMedian(chat: Chat): number {
@@ -246,18 +220,56 @@ export class Plugin extends AbstractPlugin {
     }
   }
 
-  // For now, all new chats just get a hard-coded 1000 stonks.
-  private generateStonks(): Item[] {
-    const prototype = new ItemProtoType(0, "Stonks", 0.1, 0.095, "📈", false, false, false);
-    const item = new Item(prototype, 1000);
-    return [item];
+  private loadData(): void {
+    const rawitemProtoTypes: any[] = this.loadDataFromFile(Plugin.ITEMS_PROTOTYPES_FILE);
+
+    if (!rawitemProtoTypes) {
+      console.log(`No ${Plugin.ITEMS_PROTOTYPES_FILE} loaded, starting fresh`);
+      return;
+    }
+    this.itemProtoTypes = new Map();
+
+    rawitemProtoTypes.forEach(raw => {
+      const protoType = new ItemProtoType(raw.id, raw.name, raw.buyPriceRatioToMedian, raw.sellPriceRatioToMedian, raw.icon, raw.usable,
+        raw.consumedOnUse, raw.equippable);
+      this.itemProtoTypes.set(protoType.id, protoType);
+    });
+
+    const rawChatsItemsData: any[] = this.loadDataFromFile(Plugin.ITEMS_CHATS_DATA_FILE);
+
+    if (!rawChatsItemsData) {
+      console.log(`No ${Plugin.ITEMS_CHATS_DATA_FILE} loaded, starting fresh`);
+      return;
+    }
+    this.chatsItemsData = new Map();
+
+    rawChatsItemsData.forEach(raw => {
+      const shopInventory = this.parseRawItems(raw.shopInventory);
+      const inventoryManager = this.parseRawInventoryManager(raw.inventoryManager);
+      const data = new ChatItemsData(raw.chatId, inventoryManager, shopInventory, raw.scoreMedian);
+      this.chatsItemsData.set(data.chatId, data);
+    });
   }
 
-  private loadData(): void {
-    // TODO
+  private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {
+    const inventories = new Map<number, Item[]>();
+    inventoryManager?.forEach(raw => {
+      const items = this.parseRawItems(raw.inventory);
+      inventories.set(raw.userId, items);
+    });
+    return new ChatInventoryManager(inventories);
+  }
+
+  private parseRawItems(rawItems?: any): Item[] {
+    return rawItems?.map(raw => {
+      const protoType = this.itemProtoTypes.get(raw.prototypeId);
+      return new Item(protoType, raw.stackSize);
+    }) ?? [];
   }
 
   private persistData(): void {
-    // TODO
+    this.saveDataToFile(Plugin.ITEMS_PROTOTYPES_FILE, this.itemProtoTypes);
+    this.saveDataToFile(Plugin.ITEMS_CHATS_DATA_FILE, this.chatsItemsData);
   }
 }
+

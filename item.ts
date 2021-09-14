@@ -12,6 +12,13 @@ export class Item {
     ) {
     }
 
+    public toJSON(): { prototypeId: number, stackSize: number } {
+        return {
+            prototypeId: this.prototype.id,
+            stackSize: this.stackSize
+        };
+    }
+
     public name(): string {
         return this.prototype.name;
     }

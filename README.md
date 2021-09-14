@@ -2,11 +2,10 @@
 An items and shop plugin for the DankTimesBot. Very much WIP.
 
 ## TODO:
-1. Persisting everything to files (partly need DankTimesBot update for hourly persistence)
-2. Allowing other plugins to put items in the shop via custom plugin events (need DankTimesBot update for that first)
-3. Implement usage of the various flags given to Item
-4. Round calculated prices to max 3 non-0 numbers so they look better (e.g. 35748 becomes 35700)
-5. Ease-of-use stuff e.g. allow to see sell price before selling, allow to enter quantity when buying/selling, etc.
+1. Allowing other plugins to put items in the shop via custom plugin events (need DankTimesBot update for that first)
+2. Implement usage of the various flags given to Item
+3. Round calculated prices to max 3 non-0 numbers so they look better (e.g. 35748 becomes 35700)
+4. Ease-of-use stuff e.g. allow to enter quantity when buying/selling
 
 ## Installation
 
