@@ -120,24 +120,56 @@ export class Plugin extends AbstractPlugin {
     if (!match) {
       return "You have to specify what you want to buy!";
     }
-    const itemName = match.toLowerCase();
+    const amountAndItemName = this.determineAmountAndItemNameFromInput(match);
+
+    if (amountAndItemName.amount < 1) {
+      return "The amount must be at least 1!";
+    }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
-    const item = chatItemsData.shopInventory.find((shopItem) => shopItem.name().toLowerCase() === itemName);
+    const item = chatItemsData.shopInventory.find((shopItem) => shopItem.name().toLowerCase() === amountAndItemName.itemName);
 
     if (!item) {
       return "The shop doesn't have that item!";
     }
-    let buyPrice = item.buyPrice(chatItemsData.scoreMedian);
+    let amount = amountAndItemName.amount;
+    const shopHasInsufficientAmount = item.stackSize < amount;
 
-    if (user.score < buyPrice) {
-      return "You can't afford that item!";
+    if (shopHasInsufficientAmount) {
+      amount = item.stackSize;
+    }
+    const individualBuyPrice = item.buyPrice(chatItemsData.scoreMedian);
+    let buyPrice = amount * individualBuyPrice;
+    const playerHasInsufficientFunds = buyPrice > user.score;
+
+    if (playerHasInsufficientFunds) {
+      amount = Math.floor(user.score / individualBuyPrice);
+      buyPrice = amount * individualBuyPrice;
+
+      if (amount < 1) {
+        return "You can't afford that item!";
+      }
     }
     const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
     buyPrice = chat.alterUserScore(alterScoreArgs);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    this.moveToInventory(chatItemsData.shopInventory, inventory, item);
+    this.moveToInventory(chatItemsData.shopInventory, inventory, item, amount);
+    let successMsg: string;
 
-    return `Bought ${item.prettyString()} for <i>${-buyPrice}</i> points!`;
+    if (playerHasInsufficientFunds) {
+      successMsg = `You did not have enough points for ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+
+    } else if (shopHasInsufficientAmount) {
+      successMsg = `The shop did not have ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+
+    } else if (amount > 1) {
+      successMsg = `Bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+
+    } else {
+      successMsg = `Bought ${item.prettyString()} for <i>${-buyPrice}</i> points!`;
+    }
+    return successMsg;
   }
 
   /**
@@ -147,32 +179,97 @@ export class Plugin extends AbstractPlugin {
     if (!match) {
       return "You have to specify what you want to sell!";
     }
-    const itemName = match.toLowerCase();
+    const amountAndItemName = this.determineAmountAndItemNameFromInput(match);
+
+    if (amountAndItemName.amount < 1) {
+      return "The amount must be at least 1!";
+    }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === itemName);
+    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === amountAndItemName.itemName);
 
     if (!item) {
       return "You don't have that item!";
     }
-    let sellPrice = item.sellPrice(chatItemsData.scoreMedian);
+    let amount = amountAndItemName.amount;
+    const playerHasInsufficientAmount = item.stackSize < amount;
+
+    if (playerHasInsufficientAmount) {
+      amount = item.stackSize;
+    }
+    let sellPrice = amount * item.sellPrice(chatItemsData.scoreMedian);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
-    this.moveToInventory(inventory, chatItemsData.shopInventory, item);
+    this.moveToInventory(inventory, chatItemsData.shopInventory, item, amount);
+    let successMsg: string;
 
-    return `Sold ${item.prettyString()} for <i>${sellPrice}</i> points!`;
+    if (playerHasInsufficientAmount) {
+      successMsg = `You did not have ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead sold ${item.prettyString()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+
+    } else if (amount > 1) {
+      successMsg = `Sold ${item.prettyString()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+
+    } else {
+      successMsg = `Sold ${item.prettyString()} for <i>${sellPrice}</i> points!`;
+    }
+    return successMsg;
   }
+
 
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
     let data = this.chatsItemsData.get(chat.id);
     if (!data) {
       data = new ChatItemsData(chat.id);
-      data.scoreMedian = this.calculateScoreMedian(chat);    
+      data.scoreMedian = this.calculateScoreMedian(chat);
       data.shopInventory.push(new Item(this.itemProtoTypes.get(0), 1000));  // For now, all chats just get 1k stonks.
       this.chatsItemsData.set(chat.id, data);
     }
     return data;
   }
+
+  private determineAmountAndItemNameFromInput(match: string): { amount: number, itemName: string } {
+    const matchSplit = match.split(" ");
+    let amount: number;
+    let itemName: string;
+
+    if (matchSplit.length > 1) {
+      amount = Number(matchSplit[matchSplit.length - 1]);
+
+      if (isNaN(amount)) {
+        amount = 1;
+        itemName = match;
+
+      } else {
+        itemName = matchSplit.slice(0, -1).join(" ");
+      }
+
+    } else {
+      amount = 1;
+      itemName = match;
+    }
+    itemName = itemName.toLowerCase();
+    return { amount, itemName };
+  }
+
+  private moveToInventory(from: Item[], to: Item[], item: Item, amount: number): void {
+    if (item.stackSize - amount <= 0) {
+      from.splice(from.indexOf(item), 1);
+
+    } else {
+      item.stackSize -= amount;
+    }
+    const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
+
+    if (itemInTargetInventory) {
+      itemInTargetInventory.stackSize += amount;
+
+    } else {
+      const newItem = new Item(item.prototype, amount);
+      to.push(newItem);
+    }
+  }
+
 
   private updateScoreMediansAndPersistData(eventArgs: EmptyEventArguments): void {
     const chatIds = Array.from(this.chatsItemsData.keys());
@@ -198,27 +295,11 @@ export class Plugin extends AbstractPlugin {
     }
 
     if (users.length % 2 !== 0) {
-        return users[Math.floor(users.length / 2)].score;
+      return users[Math.floor(users.length / 2)].score;
     }
     return (users[(Math.floor(users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
-  private moveToInventory(from: Item[], to: Item[], item: Item): void {
-    if (item.stackSize == 1) {
-      from.splice(from.indexOf(item), 1);
-
-    } else {
-      item.stackSize--;
-    }
-    const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
-
-    if (itemInTargetInventory) {
-      itemInTargetInventory.stackSize++;
-
-    } else {
-      to.push(item.copy());
-    }
-  }
 
   private loadData(): void {
     const rawitemProtoTypes: any[] = this.loadDataFromFile(Plugin.ITEMS_PROTOTYPES_FILE);

@@ -7,7 +7,7 @@ export class Item {
     private static readonly MINIMUM_SELL_PRICE = 5;
 
     constructor(
-        private readonly prototype: ItemProtoType,
+        public readonly prototype: ItemProtoType,
         public stackSize: number,
     ) {
     }
@@ -50,9 +50,5 @@ export class Item {
         }
         prettified += `<b>${this.prototype.name}</b>`;
         return prettified;
-    }
-
-    public copy(): Item {
-        return new Item(this.prototype, 1);
     }
 }
