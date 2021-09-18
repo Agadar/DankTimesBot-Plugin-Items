@@ -1,5 +1,5 @@
 import { ChatInventoryManager } from "./chat-inventory-manager";
-import { Item } from "./item";
+import { Item } from "../item/item";
 
 export class ChatItemsData {
 

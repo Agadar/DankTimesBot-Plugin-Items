@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
@@ -6,10 +7,12 @@ import { User } from "../../src/chat/user/user";
 import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/empty-event-arguments";
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
-import { ChatInventoryManager } from "./chat-inventory-manager";
-import { ChatItemsData } from "./chat-items-data";
-import { Item } from "./item";
-import { ItemProtoType } from "./item-prototype";
+import { AbstractItemPack } from "./abstract-item-pack";
+import { ChatInventoryManager } from "./chat/chat-inventory-manager";
+import { ChatItemsData } from "./chat/chat-items-data";
+import { Item } from "./item/item";
+import { ItemProtoType } from "./item/item-prototype";
+import { ItemPack } from "./packs/basic-item-pack/item-pack";
 
 export class Plugin extends AbstractPlugin {
 
@@ -26,19 +29,18 @@ export class Plugin extends AbstractPlugin {
 
   // Files
   private static readonly ITEMS_CHATS_DATA_FILE = "items-chats-data.json";
-  private static readonly ITEMS_PROTOTYPES_FILE = "items-prototypes.json"
 
   // Misc.
   private chatsItemsData = new Map<number, ChatItemsData>();
-  private itemProtoTypes = new Map<number, ItemProtoType>([
-    [0, new ItemProtoType(0, "Stonks", 0.1, 0.095, "📈", false, false, false)]
-  ]);
+  private itemProtoTypes = new Map<number, ItemProtoType>();
+  private itemPacks = new Array<AbstractItemPack>();
 
   constructor() {
     super("Items", "1.0.0-alpha");
 
     this.subscribeToPluginEvent(PluginEvent.BotStartup, this.loadData.bind(this));
-    this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.updateScoreMediansAndPersistData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
     this.subscribeToPluginEvent(PluginEvent.BotShutdown, this.persistData.bind(this));
   }
 
@@ -222,7 +224,7 @@ export class Plugin extends AbstractPlugin {
     if (!data) {
       data = new ChatItemsData(chat.id);
       data.scoreMedian = this.calculateScoreMedian(chat);
-      data.shopInventory.push(new Item(this.itemProtoTypes.get(0), 1000));  // For now, all chats just get 1k stonks.
+      this.itemPacks.forEach(pack => pack.onChatInitialisation(data));
       this.chatsItemsData.set(chat.id, data);
     }
     return data;
@@ -271,7 +273,7 @@ export class Plugin extends AbstractPlugin {
   }
 
 
-  private updateScoreMediansAndPersistData(eventArgs: EmptyEventArguments): void {
+  private onHourlyTick(eventArgs: EmptyEventArguments): void {
     const chatIds = Array.from(this.chatsItemsData.keys());
     chatIds.forEach((chatId) => {
       const chat = this.getChat(chatId);
@@ -281,7 +283,9 @@ export class Plugin extends AbstractPlugin {
 
       } else {
         const newScoreMedian = this.calculateScoreMedian(chat);
-        this.chatsItemsData.get(chatId).scoreMedian = newScoreMedian;
+        const chatData = this.chatsItemsData.get(chatId);
+        chatData.scoreMedian = newScoreMedian;
+        this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData));
       }
     });
     this.persistData();
@@ -300,22 +304,21 @@ export class Plugin extends AbstractPlugin {
     return (users[(Math.floor(users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
+  private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
+    this.chatsItemsData.forEach(data => this.itemPacks.forEach(pack => pack.OnNightlyUpdate(data)));
+  }
+
 
   private loadData(): void {
-    const rawitemProtoTypes: any[] = this.loadDataFromFile(Plugin.ITEMS_PROTOTYPES_FILE);
 
-    if (!rawitemProtoTypes) {
-      console.log(`No ${Plugin.ITEMS_PROTOTYPES_FILE} loaded, starting fresh`);
-      return;
-    }
-    this.itemProtoTypes = new Map();
+    // Packs and prototypes from those packs (TODO: Clean up)
+    const directory = "plugins/DankTimesBot-Plugin-Items/packs/";
+    const packsDirs = fs.readdirSync(directory).filter((f: any) => fs.statSync(directory + "/" + f).isDirectory());
+    const packs = packsDirs.map(packDir => new (require(`./packs/${packDir}/item-pack.js`)).ItemPack());  // TODO: What if not found?
+    this.itemPacks = packs as ItemPack[];
+    this.itemPacks.forEach(pack => pack.itemProtoTypes().forEach(protoType => this.itemProtoTypes.set(protoType.id, protoType))); // TODO: What if id already exists?
 
-    rawitemProtoTypes.forEach(raw => {
-      const protoType = new ItemProtoType(raw.id, raw.name, raw.buyPriceRatioToMedian, raw.sellPriceRatioToMedian, raw.icon, raw.usable,
-        raw.consumedOnUse, raw.equippable);
-      this.itemProtoTypes.set(protoType.id, protoType);
-    });
-
+    // Chats data, from file
     const rawChatsItemsData: any[] = this.loadDataFromFile(Plugin.ITEMS_CHATS_DATA_FILE);
 
     if (!rawChatsItemsData) {
@@ -343,13 +346,12 @@ export class Plugin extends AbstractPlugin {
 
   private parseRawItems(rawItems?: any): Item[] {
     return rawItems?.map(raw => {
-      const protoType = this.itemProtoTypes.get(raw.prototypeId);
+      const protoType = this.itemProtoTypes.get(raw.prototypeId);   // TODO: What if id not found?
       return new Item(protoType, raw.stackSize);
     }) ?? [];
   }
 
   private persistData(): void {
-    this.saveDataToFile(Plugin.ITEMS_PROTOTYPES_FILE, this.itemProtoTypes);
     this.saveDataToFile(Plugin.ITEMS_CHATS_DATA_FILE, this.chatsItemsData);
   }
 }

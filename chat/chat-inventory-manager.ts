@@ -1,5 +1,5 @@
-import { User } from "../../src/chat/user/user";
-import { Item } from "./item";
+import { User } from "../../../src/chat/user/user";
+import { Item } from "../item/item";
 
 export class ChatInventoryManager {
 
