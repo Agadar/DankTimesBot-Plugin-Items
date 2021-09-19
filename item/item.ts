@@ -42,13 +42,4 @@ export class Item {
         price = Math.max(price, Item.MINIMUM_SELL_PRICE);
         return price;
     }
-
-    public prettyString(): string {
-        let prettified = "";
-        if (this.prototype.icon) {
-            prettified += `${this.prototype.icon} `;
-        }
-        prettified += `<b>${this.prototype.name}</b>`;
-        return prettified;
-    }
 }

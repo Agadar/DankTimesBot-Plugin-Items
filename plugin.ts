@@ -18,10 +18,11 @@ export class Plugin extends AbstractPlugin {
 
   // Commands
   private static readonly INFO_CMD = "items";
-  private static readonly INVENTORY_CMD = `inventory`;
-  private static readonly SHOP_CMD = `shop`;
-  private static readonly BUY_CMD = `buy`;
-  private static readonly SELL_CMD = `sell`;
+  private static readonly INVENTORY_CMD = 'inventory';
+  private static readonly SHOP_CMD = 'shop';
+  private static readonly BUY_CMD = 'buy';
+  private static readonly SELL_CMD = 'sell';
+  private static readonly IDENTIFY_CMD = 'identify';
 
   // User score change reasons
   private static readonly BUY_REASON = "buy.item";
@@ -53,18 +54,20 @@ export class Plugin extends AbstractPlugin {
     const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
     const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
     const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
-    return [infoCmd, inventoryCmd, shopCmd, buyCmd, sellCmd];
+    const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD], "", this.identify.bind(this), false);
+    return [infoCmd, inventoryCmd, shopCmd, buyCmd, sellCmd, identifyCmd];
   }
 
   /**
    * info command
    */
   private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    return "The Item plugin supports the following commands:\n\n"
+    return "📦 The Items plugin supports the following commands:\n\n"
       + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
       + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
       + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
-      + `/${Plugin.SELL_CMD} to sell an item to the shop`;
+      + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
+      + `/${Plugin.IDENTIFY_CMD} to identify an item`;
   }
 
   /**
@@ -75,12 +78,12 @@ export class Plugin extends AbstractPlugin {
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
 
     if (inventory.length === 0) {
-      return "Your inventory is empty.";
+      return "🎒 Your inventory is empty.";
     }
 
-    let inventoryStr = "You have the following items:\n";
+    let inventoryStr = "Your inventory contains the following items:\n";
     inventory.forEach((item) => {
-      inventoryStr += `\n${item.prettyString()}`;
+      inventoryStr += `\n${item.prototype.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
@@ -99,11 +102,11 @@ export class Plugin extends AbstractPlugin {
     const chatItemsData = this.getOrCreateChatItemsData(chat);
 
     if (chatItemsData.shopInventory.length === 0) {
-      return "The shop is all out of stock.";
+      return "🛒 The shop is all out of stock.";
     }
     let inventoryStr = "The shop has the following item(s) for sale:\n";
     chatItemsData.shopInventory.forEach((item) => {
-      inventoryStr += `\n${item.prettyString()}`;
+      inventoryStr += `\n${item.prototype.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
@@ -120,18 +123,18 @@ export class Plugin extends AbstractPlugin {
    */
   private buy(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
-      return "You have to specify what you want to buy!";
+      return "😞 You have to specify what you want to buy.";
     }
     const amountAndItemName = this.determineAmountAndItemNameFromInput(match);
 
     if (amountAndItemName.amount < 1) {
-      return "The amount must be at least 1!";
+      return "😞 You have to buy at least 1.";
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const item = chatItemsData.shopInventory.find((shopItem) => shopItem.name().toLowerCase() === amountAndItemName.itemName);
 
     if (!item) {
-      return "The shop doesn't have that item!";
+      return "😞 The shop doesn't have that item.";
     }
     let amount = amountAndItemName.amount;
     const shopHasInsufficientAmount = item.stackSize < amount;
@@ -148,7 +151,7 @@ export class Plugin extends AbstractPlugin {
       buyPrice = amount * individualBuyPrice;
 
       if (amount < 1) {
-        return "You can't afford that item!";
+        return "😞 You can't afford that item.";
       }
     }
     const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
@@ -158,18 +161,18 @@ export class Plugin extends AbstractPlugin {
     let successMsg: string;
 
     if (playerHasInsufficientFunds) {
-      successMsg = `You did not have enough points for ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `You did not have enough points for ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (shopHasInsufficientAmount) {
-      successMsg = `The shop did not have ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `The shop did not have ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Bought ${item.prettyString()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else {
-      successMsg = `Bought ${item.prettyString()} for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${item.prototype.prettyName()} for <i>${-buyPrice}</i> points!`;
     }
     return successMsg;
   }
@@ -179,19 +182,19 @@ export class Plugin extends AbstractPlugin {
    */
   private sell(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
-      return "You have to specify what you want to sell!";
+      return "😞 You have to specify what you want to sell.";
     }
     const amountAndItemName = this.determineAmountAndItemNameFromInput(match);
 
     if (amountAndItemName.amount < 1) {
-      return "The amount must be at least 1!";
+      return "😞 You have to sell at least 1.";
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
     const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === amountAndItemName.itemName);
 
     if (!item) {
-      return "You don't have that item!";
+      return "😞 You don't have that item.";
     }
     let amount = amountAndItemName.amount;
     const playerHasInsufficientAmount = item.stackSize < amount;
@@ -206,18 +209,34 @@ export class Plugin extends AbstractPlugin {
     let successMsg: string;
 
     if (playerHasInsufficientAmount) {
-      successMsg = `You did not have ${item.prettyString()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead sold ${item.prettyString()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `You did not have ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead sold ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Sold ${item.prettyString()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else {
-      successMsg = `Sold ${item.prettyString()} for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${item.prototype.prettyName()} for <i>${sellPrice}</i> points!`;
     }
     return successMsg;
   }
 
+  /**
+   * identify command
+   */
+  private identify(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
+      return "😞 You have to tell me what you want to identify.";
+    }
+
+    const protoTypes = Array.from(this.itemProtoTypes.values())
+      .filter(protoType => protoType.name.toLowerCase() === match.toLowerCase());
+
+    if (protoTypes.length < 1) {
+      return "🤷 That item does not exist."
+    }
+    return protoTypes.map(protoType => protoType.prettyPrint()).join("\n\n");
+  }
 
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
     let data = this.chatsItemsData.get(chat.id);
