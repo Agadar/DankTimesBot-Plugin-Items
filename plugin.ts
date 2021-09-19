@@ -133,7 +133,7 @@ export class Plugin extends AbstractPlugin {
       return "😞 You don't have that item.";
     }
     if (!item.prototype.equippable) {
-      return `${item.prototype.prettyName()} cannot be equipped.`;
+      return `You put ${item.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
     return "😞 The developer didn't implement this yet."; // TODO: Implement.
   }
@@ -153,9 +153,14 @@ export class Plugin extends AbstractPlugin {
       return "😞 You don't have that item.";
     }
     if (!item.prototype.usable) {
-      return `${item.prototype.prettyName()} cannot be used.`;
+      return `You shake ${item.prototype.prettyName()} around for a bit and give it a lick. Nothing happens.`;
     }
-    return "😞 The developer didn't implement this yet."; // TODO: Implement.
+    const useResult = item.prototype.onUse(chat, user, msg, match);
+
+    if (item.prototype.consumedOnUse && useResult.shouldConsume) {
+      chatItemsData.removeFromInventory(inventory, item, 1);
+    }
+    return useResult.msg;
   }
 
   /**
@@ -220,7 +225,7 @@ export class Plugin extends AbstractPlugin {
     const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
     buyPrice = chat.alterUserScore(alterScoreArgs);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    this.moveToInventory(chatItemsData.shopInventory, inventory, item, amount);
+    chatItemsData.moveToInventory(chatItemsData.shopInventory, item, amount, inventory);
     let successMsg: string;
 
     if (playerHasInsufficientFunds) {
@@ -268,7 +273,7 @@ export class Plugin extends AbstractPlugin {
     let sellPrice = amount * item.sellPrice(chatItemsData.scoreMedian);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
-    this.moveToInventory(inventory, chatItemsData.shopInventory, item, amount);
+    chatItemsData.moveToInventory(inventory, item, amount, chatItemsData.shopInventory);
     let successMsg: string;
 
     if (playerHasInsufficientAmount) {
@@ -317,24 +322,6 @@ export class Plugin extends AbstractPlugin {
     }
     itemName = itemName.toLowerCase();
     return { amount, itemName };
-  }
-
-  private moveToInventory(from: Item[], to: Item[], item: Item, amount: number): void {
-    if (item.stackSize - amount <= 0) {
-      from.splice(from.indexOf(item), 1);
-
-    } else {
-      item.stackSize -= amount;
-    }
-    const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
-
-    if (itemInTargetInventory) {
-      itemInTargetInventory.stackSize += amount;
-
-    } else {
-      const newItem = new Item(item.prototype, amount);
-      to.push(newItem);
-    }
   }
 
 

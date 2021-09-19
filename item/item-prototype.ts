@@ -1,3 +1,7 @@
+import { Message } from "node-telegram-bot-api";
+import { Chat } from "../../../src/chat/chat";
+import { User } from "../../../src/chat/user/user";
+
 export class ItemProtoType {
 
     constructor(
@@ -45,5 +49,9 @@ export class ItemProtoType {
             prettified += `\n${this.description}`;
         }
         return prettified;
+    }
+
+    public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {
+        return { msg: `You shake ${this.prettyName()} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
     }
 }
