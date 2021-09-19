@@ -19,10 +19,12 @@ export class Plugin extends AbstractPlugin {
   // Commands
   private static readonly INFO_CMD = "items";
   private static readonly INVENTORY_CMD = 'inventory';
+  private static readonly IDENTIFY_CMD = 'identify';
+  private static readonly EQUIP_CMD = 'equip';
+  private static readonly USE_CMD = 'use';
   private static readonly SHOP_CMD = 'shop';
   private static readonly BUY_CMD = 'buy';
   private static readonly SELL_CMD = 'sell';
-  private static readonly IDENTIFY_CMD = 'identify';
 
   // User score change reasons
   private static readonly BUY_REASON = "buy.item";
@@ -51,11 +53,13 @@ export class Plugin extends AbstractPlugin {
   public getPluginSpecificCommands(): BotCommand[] {
     const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Items plugin", this.itemsInfo.bind(this));
     const inventoryCmd = new BotCommand([Plugin.INVENTORY_CMD], "", this.inventory.bind(this), false);
+    const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD], "", this.identify.bind(this), false);
+    const equipCmd = new BotCommand([Plugin.EQUIP_CMD], "", this.equip.bind(this), false);
+    const useCmd = new BotCommand([Plugin.USE_CMD], "", this.use.bind(this), false);
     const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
     const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
     const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
-    const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD], "", this.identify.bind(this), false);
-    return [infoCmd, inventoryCmd, shopCmd, buyCmd, sellCmd, identifyCmd];
+    return [infoCmd, inventoryCmd, identifyCmd, equipCmd, useCmd, shopCmd, buyCmd, sellCmd];
   }
 
   /**
@@ -64,10 +68,12 @@ export class Plugin extends AbstractPlugin {
   private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     return "📦 The Items plugin supports the following commands:\n\n"
       + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
+      + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
+      + `/${Plugin.EQUIP_CMD} to equip an item\n`
+      + `/${Plugin.USE_CMD} to use an item\n\n`
       + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
       + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
-      + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
-      + `/${Plugin.IDENTIFY_CMD} to identify an item`;
+      + `/${Plugin.SELL_CMD} to sell an item to the shop`;
   }
 
   /**
@@ -93,6 +99,63 @@ export class Plugin extends AbstractPlugin {
       }
     });
     return inventoryStr;
+  }
+
+  /**
+   * identify command
+   */
+  private identify(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
+      return "😞 You have to tell me what you want to identify.";
+    }
+
+    const protoTypes = Array.from(this.itemProtoTypes.values())
+      .filter(protoType => protoType.name.toLowerCase() === match.toLowerCase());
+
+    if (protoTypes.length < 1) {
+      return "🤷 That item does not exist."
+    }
+    return protoTypes.map(protoType => protoType.prettyPrint()).join("\n\n");
+  }
+
+  /**
+   * identify command
+   */
+  private equip(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
+      return "😞 You have to specify what item you want to equip.";
+    }
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === match.toLowerCase());
+
+    if (!item) {
+      return "😞 You don't have that item.";
+    }
+    if (!item.prototype.equippable) {
+      return `${item.prototype.prettyName()} cannot be equipped.`;
+    }
+    return "😞 The developer didn't implement this yet."; // TODO: Implement.
+  }
+
+  /**
+   * identify command
+   */
+   private use(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
+      return "😞 You have to specify what item you want to use.";
+    }
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === match.toLowerCase());
+
+    if (!item) {
+      return "😞 You don't have that item.";
+    }
+    if (!item.prototype.usable) {
+      return `${item.prototype.prettyName()} cannot be used.`;
+    }
+    return "😞 The developer didn't implement this yet."; // TODO: Implement.
   }
 
   /**
@@ -219,23 +282,6 @@ export class Plugin extends AbstractPlugin {
       successMsg = `Sold ${item.prototype.prettyName()} for <i>${sellPrice}</i> points!`;
     }
     return successMsg;
-  }
-
-  /**
-   * identify command
-   */
-  private identify(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    if (!match) {
-      return "😞 You have to tell me what you want to identify.";
-    }
-
-    const protoTypes = Array.from(this.itemProtoTypes.values())
-      .filter(protoType => protoType.name.toLowerCase() === match.toLowerCase());
-
-    if (protoTypes.length < 1) {
-      return "🤷 That item does not exist."
-    }
-    return protoTypes.map(protoType => protoType.prettyPrint()).join("\n\n");
   }
 
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
