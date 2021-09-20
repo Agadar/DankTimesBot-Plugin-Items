@@ -3,7 +3,7 @@ import { Item } from "../item/item";
 
 export class ChatInventoryManager {
 
-    constructor(private readonly inventories: Map<number, Item[]> = new Map()) { }
+    constructor(private readonly inventories = new Map<number, Item[]>()) { }
 
     public getOrCreateInventory(user: User): Item[] {
         let inventory = this.inventories.get(user.id);

@@ -1,4 +1,5 @@
 import { ChatInventoryManager } from "./chat-inventory-manager";
+import { ChatEquipmentManager } from "./chat-equipment-manager";
 import { Item } from "../item/item";
 
 export class ChatItemsData {
@@ -6,6 +7,7 @@ export class ChatItemsData {
     constructor(
         public readonly chatId: number,
         public readonly inventoryManager = new ChatInventoryManager(),
+        public readonly equipmentManager = new ChatEquipmentManager(),
         public readonly shopInventory = new Array<Item>(),
         public scoreMedian = 0) { }
 

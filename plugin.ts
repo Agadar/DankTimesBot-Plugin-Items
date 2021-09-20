@@ -8,6 +8,7 @@ import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-a
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { AbstractItemPack } from "./abstract-item-pack";
+import { ChatEquipmentManager } from "./chat/chat-equipment-manager";
 import { ChatInventoryManager } from "./chat/chat-inventory-manager";
 import { ChatItemsData } from "./chat/chat-items-data";
 import { Item } from "./item/item";
@@ -19,8 +20,10 @@ export class Plugin extends AbstractPlugin {
   // Commands
   private static readonly INFO_CMD = "items";
   private static readonly INVENTORY_CMD = 'inventory';
-  private static readonly IDENTIFY_CMD = 'identify';
+  private static readonly EQUIPMENT_CMD = 'equipment';
   private static readonly EQUIP_CMD = 'equip';
+  private static readonly UNEQUIP_CMD = 'unequip';
+  private static readonly IDENTIFY_CMD = 'identify';
   private static readonly USE_CMD = 'use';
   private static readonly SHOP_CMD = 'shop';
   private static readonly BUY_CMD = 'buy';
@@ -53,13 +56,15 @@ export class Plugin extends AbstractPlugin {
   public getPluginSpecificCommands(): BotCommand[] {
     const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Items plugin", this.itemsInfo.bind(this));
     const inventoryCmd = new BotCommand([Plugin.INVENTORY_CMD], "", this.inventory.bind(this), false);
+    const equipmentCmd = new BotCommand([Plugin.EQUIPMENT_CMD], "", this.equipment.bind(this), false);
     const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD], "", this.identify.bind(this), false);
     const equipCmd = new BotCommand([Plugin.EQUIP_CMD], "", this.equip.bind(this), false);
+    const unequipCmd = new BotCommand([Plugin.UNEQUIP_CMD], "", this.unequip.bind(this), false);
     const useCmd = new BotCommand([Plugin.USE_CMD], "", this.use.bind(this), false);
     const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
     const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
     const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
-    return [infoCmd, inventoryCmd, identifyCmd, equipCmd, useCmd, shopCmd, buyCmd, sellCmd];
+    return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd];
   }
 
   /**
@@ -68,8 +73,10 @@ export class Plugin extends AbstractPlugin {
   private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     return "📦 The Items plugin supports the following commands:\n\n"
       + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
+      + `/${Plugin.EQUIPMENT_CMD} to show your equipment\n`
       + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
       + `/${Plugin.EQUIP_CMD} to equip an item\n`
+      + `/${Plugin.UNEQUIP_CMD} to unequip an item\n`
       + `/${Plugin.USE_CMD} to use an item\n\n`
       + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
       + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
@@ -102,6 +109,13 @@ export class Plugin extends AbstractPlugin {
   }
 
   /**
+   * equipment command
+   */
+  private equipment(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    return `Not yet implemented, go bother the developer.`;
+  }
+
+  /**
    * identify command
    */
   private identify(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
@@ -119,7 +133,7 @@ export class Plugin extends AbstractPlugin {
   }
 
   /**
-   * identify command
+   * equip command
    */
   private equip(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
@@ -135,13 +149,20 @@ export class Plugin extends AbstractPlugin {
     if (!item.prototype.equippable) {
       return `You put ${item.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
-    return "😞 The developer didn't implement this yet."; // TODO: Implement.
+    return `Not yet implemented, go bother the developer.`;
+  }
+
+  /**
+   * equipment command
+   */
+  private unequip(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    return `Not yet implemented, go bother the developer.`;
   }
 
   /**
    * identify command
    */
-   private use(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+  private use(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
       return "😞 You have to specify what item you want to use.";
     }
@@ -347,17 +368,40 @@ export class Plugin extends AbstractPlugin {
     this.persistData();
   }
 
+  // TODO: Remove the console info prints that were added for testing
   private calculateScoreMedian(chat: Chat): number {
     const users = chat.sortedUsers().filter(user => user && (user.score > 0 || user.lastScoreChange !== 0));
 
     if (users.length === 0) {
       return 0;
     }
+    console.info(`Calculating score median for chat with id ${chat.id} for users: ${users.join(", ")}`);
 
     if (users.length % 2 !== 0) {
-      return users[Math.floor(users.length / 2)].score;
+      const index = Math.floor(users.length / 2);
+      const user = users[index];
+
+      if (!user) {
+        console.info(`The user with index ${index} is somehow undefined!`);
+        return 0;
+      }
+      return user.score;
     }
-    return (users[(Math.floor(users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
+
+    const indexA = Math.floor(users.length - 1) / 2;
+    const indexB = Math.floor(users.length / 2);
+    const userA = users[indexA];
+    const userB = users[indexB];
+
+    if (!userA) {
+      console.info(`The user with index ${indexA} is somehow undefined!`);
+      return 0;
+    }
+    if (!userB) {
+      console.info(`The user with index ${indexB} is somehow undefined!`);
+      return 0;
+    }
+    return (userA.score + userB.score) / 2.0;
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
@@ -386,7 +430,8 @@ export class Plugin extends AbstractPlugin {
     rawChatsItemsData.forEach(raw => {
       const shopInventory = this.parseRawItems(raw.shopInventory);
       const inventoryManager = this.parseRawInventoryManager(raw.inventoryManager);
-      const data = new ChatItemsData(raw.chatId, inventoryManager, shopInventory, raw.scoreMedian);
+      const equipmentManager = this.parseRawEquipmentManager(raw.equipmentManager);
+      const data = new ChatItemsData(raw.chatId, inventoryManager, equipmentManager, shopInventory, raw.scoreMedian);
       this.chatsItemsData.set(data.chatId, data);
     });
   }
@@ -398,6 +443,15 @@ export class Plugin extends AbstractPlugin {
       inventories.set(raw.userId, items);
     });
     return new ChatInventoryManager(inventories);
+  }
+
+  private parseRawEquipmentManager(equipmentManager?: any): ChatEquipmentManager {
+    const equipments = new Map<number, Item[]>();
+    equipmentManager?.forEach(raw => {
+      const items = this.parseRawItems(raw.equipment);
+      equipments.set(raw.userId, items);
+    });
+    return new ChatEquipmentManager(equipments);
   }
 
   private parseRawItems(rawItems?: any): Item[] {
