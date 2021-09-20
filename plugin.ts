@@ -378,7 +378,7 @@ export class Plugin extends AbstractPlugin {
     if (users.length % 2 !== 0) {
       return users[Math.floor(users.length / 2)].score;
     }
-    return (users[Math.floor(users.length - 1 / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
+    return (users[Math.floor((users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
