@@ -368,40 +368,17 @@ export class Plugin extends AbstractPlugin {
     this.persistData();
   }
 
-  // TODO: Remove the console info prints that were added for testing
   private calculateScoreMedian(chat: Chat): number {
     const users = chat.sortedUsers().filter(user => user && (user.score > 0 || user.lastScoreChange !== 0));
 
     if (users.length === 0) {
       return 0;
     }
-    console.info(`Calculating score median for chat with id ${chat.id} for users: ${users.join(", ")}`);
 
     if (users.length % 2 !== 0) {
-      const index = Math.floor(users.length / 2);
-      const user = users[index];
-
-      if (!user) {
-        console.info(`The user with index ${index} is somehow undefined!`);
-        return 0;
-      }
-      return user.score;
+      return users[Math.floor(users.length / 2)].score;
     }
-
-    const indexA = Math.floor(users.length - 1) / 2;
-    const indexB = Math.floor(users.length / 2);
-    const userA = users[indexA];
-    const userB = users[indexB];
-
-    if (!userA) {
-      console.info(`The user with index ${indexA} is somehow undefined!`);
-      return 0;
-    }
-    if (!userB) {
-      console.info(`The user with index ${indexB} is somehow undefined!`);
-      return 0;
-    }
-    return (userA.score + userB.score) / 2.0;
+    return (users[Math.floor(users.length - 1 / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
