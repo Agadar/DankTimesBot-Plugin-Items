@@ -328,23 +328,27 @@ export class Plugin extends AbstractPlugin {
   private onHourlyTick(eventArgs: EmptyEventArguments): void {
     const chatIds = Array.from(this.chatsItemsData.keys());
     chatIds.forEach((chatId) => {
-      const chat = this.getChat(chatId);
+      try {
+        const chat = this.getChat(chatId);
 
-      if (!chat) {
-        this.chatsItemsData.delete(chatId);
+        if (!chat) {
+          this.chatsItemsData.delete(chatId);
 
-      } else {
-        const newScoreMedian = this.calculateScoreMedian(chat);
-        const chatData = this.chatsItemsData.get(chatId);
-        chatData.scoreMedian = newScoreMedian;
-        this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData));
+        } else {
+          const newScoreMedian = this.calculateScoreMedian(chat);
+          const chatData = this.chatsItemsData.get(chatId);
+          chatData.scoreMedian = newScoreMedian;
+          this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData));
+        }
+      } catch (error) {
+        console.error(`Error while performing hourly tick for chat ${chatId} for plugin ${this.name}: ${error}`);
       }
     });
     this.persistData();
   }
 
   private calculateScoreMedian(chat: Chat): number {
-    const users = chat.sortedUsers();
+    const users = chat.sortedUsers().filter(user => user && (user.score > 0 || user.lastScoreChange !== 0));
 
     if (users.length === 0) {
       return 0;
