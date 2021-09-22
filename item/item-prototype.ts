@@ -1,6 +1,7 @@
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
+import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
 
 export class ItemProtoType {
 
@@ -14,8 +15,7 @@ export class ItemProtoType {
         public readonly tags: string[] = [],
         public readonly usable: boolean = false,
         public readonly consumedOnUse: boolean = false,
-        public readonly equippable: boolean = false,
-        public readonly incompatibleTagsForEquip: string[]  = []
+        public readonly equippable: boolean = false
     ) {
     }
 
@@ -53,5 +53,9 @@ export class ItemProtoType {
 
     public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {
         return { msg: `You shake ${this.prettyName()} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
+    }
+
+    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
+        // No behavior by default.
     }
 }

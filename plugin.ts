@@ -5,6 +5,7 @@ import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
 import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/empty-event-arguments";
+import { PreUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { AbstractItemPack } from "./abstract-item-pack";
@@ -45,6 +46,7 @@ export class Plugin extends AbstractPlugin {
     super("Items", "1.0.0-alpha");
 
     this.subscribeToPluginEvent(PluginEvent.BotStartup, this.loadData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.PreUserScoreChange, this.onPreUserScoreChange.bind(this));
     this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
     this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
     this.subscribeToPluginEvent(PluginEvent.BotShutdown, this.persistData.bind(this));
@@ -112,7 +114,19 @@ export class Plugin extends AbstractPlugin {
    * equipment command
    */
   private equipment(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    return `Not yet implemented, go bother the developer.`;
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+
+    if (equipment.length === 0) {
+      return "👐 You have nothing equipped.";
+    }
+
+    let equipmentStr = "You have the following items equipped:\n";
+    equipment.forEach((item) => {
+      equipmentStr += `\n${item.prototype.prettyName()}`;
+      equipmentStr += ` worth <i>${item.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+    });
+    return equipmentStr;
   }
 
   /**
@@ -149,14 +163,34 @@ export class Plugin extends AbstractPlugin {
     if (!item.prototype.equippable) {
       return `You put ${item.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
-    return `Not yet implemented, go bother the developer.`;
+    const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+    const incompatibleEquippedItem = equipment.find(equipped => equipped.prototype.tags.find(
+      equippedTag => item.prototype.tags.includes(equippedTag)))
+
+    if (incompatibleEquippedItem) {
+      return `Cannot equip at the same time with ${incompatibleEquippedItem.prototype.prettyName()}.`;
+    }
+    chatItemsData.moveToInventory(inventory, item, 1, equipment);
+    return `Equipped ${item.prototype.prettyName()}!`;
   }
 
   /**
    * equipment command
    */
   private unequip(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-    return `Not yet implemented, go bother the developer.`;
+    if (!match) {
+      return "😞 You have to specify what item you want to unequip.";
+    }
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+    const item = equipment.find((item) => item.name().toLowerCase() === match.toLowerCase());
+
+    if (!item) {
+      return "😞 You don't have that item equipped.";
+    }
+    const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+    chatItemsData.moveToInventory(equipment, item, 1, inventory);
+    return `Unequipped ${item.prototype.prettyName()}!`;
   }
 
   /**
@@ -411,6 +445,12 @@ export class Plugin extends AbstractPlugin {
       const data = new ChatItemsData(raw.chatId, inventoryManager, equipmentManager, shopInventory, raw.scoreMedian);
       this.chatsItemsData.set(data.chatId, data);
     });
+  }
+
+  private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): string {
+    const equipment = this.getOrCreateChatItemsData(event.chat).equipmentManager.getOrCreateEquipment(event.user);
+    equipment.forEach(item => item.prototype.onPreUserScoreChange(event));
+    return null;
   }
 
   private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {
