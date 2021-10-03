@@ -13,7 +13,7 @@ export class RpgEquipment extends ItemProtoType {
         tags: string[],
         private readonly nameOfOriginPlugin: string,
         private readonly scoreChangeReason: string,
-        private readonly modifier: number
+        private readonly modifier: number,
     ) {
         super(id, name, buyPriceRatioToMedian, sellPriceRatioToMedian, icon, description, tags, false, false, true);
     }

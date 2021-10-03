@@ -1,6 +1,6 @@
-import { ChatInventoryManager } from "./chat-inventory-manager";
-import { ChatEquipmentManager } from "./chat-equipment-manager";
 import { Item } from "../item/item";
+import { ChatEquipmentManager } from "./chat-equipment-manager";
+import { ChatInventoryManager } from "./chat-inventory-manager";
 
 export class ChatItemsData {
 
@@ -18,7 +18,7 @@ export class ChatItemsData {
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find(toFind => toFind.prototypeId == item.prototypeId);
+        const itemInTargetInventory = to.find((toFind) => toFind.prototypeId === item.prototypeId);
 
         if (itemInTargetInventory) {
             itemInTargetInventory.stackSize += item.stackSize;

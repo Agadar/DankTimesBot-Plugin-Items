@@ -14,7 +14,7 @@ export class ChatEquipmentManager {
         return equipment;
     }
 
-    public toJSON(): { userId: number, equipment: Item[] }[] {
+    public toJSON(): Array<{ userId: number, equipment: Item[] }> {
         return Array.from(this.equipments, ([key, value]) => ({ userId: key, equipment: value }));
     }
 }

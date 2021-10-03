@@ -18,7 +18,7 @@ export class FileIOHelper {
         if (!rawChatsItemsData) {
             console.log(`No ${FileIOHelper.ITEMS_CHATS_DATA_FILE} loaded, starting fresh`);
         } else {
-            rawChatsItemsData.forEach(raw => {
+            rawChatsItemsData.forEach((raw) => {
                 const shopInventory = this.parseRawItems(raw.shopInventory);
                 const inventoryManager = this.parseRawInventoryManager(raw.inventoryManager);
                 const equipmentManager = this.parseRawEquipmentManager(raw.equipmentManager);
@@ -39,7 +39,7 @@ export class FileIOHelper {
 
     private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {
         const inventories = new Map<number, Item[]>();
-        inventoryManager?.forEach(raw => {
+        inventoryManager?.forEach((raw) => {
             const items = this.parseRawItems(raw.inventory);
             inventories.set(raw.userId, items);
         });
@@ -48,7 +48,7 @@ export class FileIOHelper {
 
     private parseRawEquipmentManager(equipmentManager?: any): ChatEquipmentManager {
         const equipments = new Map<number, Item[]>();
-        equipmentManager?.forEach(raw => {
+        equipmentManager?.forEach((raw) => {
             const items = this.parseRawItems(raw.equipment);
             equipments.set(raw.userId, items);
         });

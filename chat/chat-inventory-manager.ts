@@ -14,7 +14,7 @@ export class ChatInventoryManager {
         return inventory;
     }
 
-    public toJSON(): { userId: number, inventory: Item[] }[] {
+    public toJSON(): Array<{ userId: number, inventory: Item[] }> {
         return Array.from(this.inventories, ([key, value]) => ({ userId: key, inventory: value }));
     }
 }

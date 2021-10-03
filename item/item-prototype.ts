@@ -23,7 +23,7 @@ export class ItemProtoType {
         public readonly tags: string[] = [],
         public readonly usable: boolean = false,
         public readonly consumedOnUse: boolean = false,
-        public readonly equippable: boolean = false
+        public readonly equippable: boolean = false,
     ) {
     }
 

@@ -21,15 +21,15 @@ export class Plugin extends AbstractPlugin {
 
   // Commands
   private static readonly INFO_CMD = "items";
-  private static readonly INVENTORY_CMD = 'inventory';
-  private static readonly EQUIPMENT_CMD = 'equipment';
-  private static readonly EQUIP_CMD = 'equip';
-  private static readonly UNEQUIP_CMD = 'unequip';
-  private static readonly IDENTIFY_CMD = 'identify';
-  private static readonly USE_CMD = 'use';
-  private static readonly SHOP_CMD = 'shop';
-  private static readonly BUY_CMD = 'buy';
-  private static readonly SELL_CMD = 'sell';
+  private static readonly INVENTORY_CMD = "inventory";
+  private static readonly EQUIPMENT_CMD = "equipment";
+  private static readonly EQUIP_CMD = "equip";
+  private static readonly UNEQUIP_CMD = "unequip";
+  private static readonly IDENTIFY_CMD = "identify";
+  private static readonly USE_CMD = "use";
+  private static readonly SHOP_CMD = "shop";
+  private static readonly BUY_CMD = "buy";
+  private static readonly SELL_CMD = "sell";
 
   // User score change reasons
   private static readonly BUY_REASON = "buy.item";
@@ -109,7 +109,7 @@ export class Plugin extends AbstractPlugin {
       }
       inventoryStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
-        inventoryStr += ' each';
+        inventoryStr += " each";
       }
     });
     return inventoryStr;
@@ -144,12 +144,12 @@ export class Plugin extends AbstractPlugin {
     }
 
     const protoTypes = Array.from(this.itemProtoTypes.values())
-      .filter(protoType => protoType.name.toLowerCase() === match.toLowerCase());
+      .filter((protoType) => protoType.name.toLowerCase() === match.toLowerCase());
 
     if (protoTypes.length < 1) {
-      return "🤷 That item does not exist."
+      return "🤷 That item does not exist.";
     }
-    return protoTypes.map(protoType => protoType.prettyPrint()).join("\n\n");
+    return protoTypes.map((protoType) => protoType.prettyPrint()).join("\n\n");
   }
 
   /**
@@ -236,7 +236,7 @@ export class Plugin extends AbstractPlugin {
       }
       inventoryStr += ` for <i>${prototype.buyPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
-        inventoryStr += ' each';
+        inventoryStr += " each";
       }
     });
     return inventoryStr;
@@ -345,14 +345,13 @@ export class Plugin extends AbstractPlugin {
     return successMsg;
   }
 
-
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
     let data = this.chatsItemsData.get(chat.id);
     if (!data) {
       data = new ChatItemsData(chat.id);
       data.scoreMedian = this.calculateScoreMedian(chat);
       this.chatsItemsData.set(chat.id, data);
-      this.itemPacks.forEach(pack => pack.onChatInitialisation(data));
+      this.itemPacks.forEach((pack) => pack.onChatInitialisation(data));
     }
     return data;
   }
@@ -365,7 +364,6 @@ export class Plugin extends AbstractPlugin {
     }
     return prototype;
   }
-
 
   private determineAmountAndItemNameFromInput(match: string): { amount: number, itemName: string } {
     const matchSplit = match.split(" ");
@@ -395,14 +393,14 @@ export class Plugin extends AbstractPlugin {
     return inventory.map((item) => {
       const prototype = this.getOrCreateItemPrototype(item.prototypeId);
       if (prototype.name.toLowerCase() === match.toLowerCase()) {
-        return { item: item, prototype: prototype };
+        return { item, prototype };
       }
       return null;
-    }).find(result => result) ?? null;
+    }).find((result) => result) ?? null;
   }
 
   private calculateScoreMedian(chat: Chat): number {
-    const users = chat.sortedUsers().filter(user => user && (user.score > 0 || user.lastScoreChange !== 0));
+    const users = chat.sortedUsers().filter((user) => user && (user.score > 0 || user.lastScoreChange !== 0));
 
     if (users.length === 0) {
       return 0;
@@ -414,7 +412,6 @@ export class Plugin extends AbstractPlugin {
     return (users[Math.floor((users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
-
   private onBotStartup(eventArgs: EmptyEventArguments): void {
     this.chatsItemsData = this.fileIOHelper.loadData();
     this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new BasicItemPack());
@@ -422,12 +419,12 @@ export class Plugin extends AbstractPlugin {
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
-    this.chatsItemsData.forEach(data => this.itemPacks.forEach(pack => pack.OnNightlyUpdate(data)));
+    this.chatsItemsData.forEach((data) => this.itemPacks.forEach((pack) => pack.OnNightlyUpdate(data)));
   }
 
   private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
     const equipment = this.getOrCreateChatItemsData(event.chat).equipmentManager.getOrCreateEquipment(event.user);
-    equipment.forEach(item => {
+    equipment.forEach((item) => {
       const prototype = this.getOrCreateItemPrototype(item.prototypeId);
       prototype.onPreUserScoreChange(event);
     });
@@ -446,7 +443,7 @@ export class Plugin extends AbstractPlugin {
           const newScoreMedian = this.calculateScoreMedian(chat);
           const chatData = this.chatsItemsData.get(chatId);
           chatData.scoreMedian = newScoreMedian;
-          this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData))
+          this.itemPacks.forEach((pack) => pack.OnHourlyTick(chatData));
         }
       } catch (error) {
         console.error(`Error while performing hourly tick for chat ${chatId} for plugin ${this.name}: ${error}`);
@@ -460,8 +457,9 @@ export class Plugin extends AbstractPlugin {
 
     if (itemPack) {
       this.itemPacks.push(itemPack);
-      itemPack.itemProtoTypes().forEach(prototype => {
-        console.info(`Adding item ${prototype.name} with id ${prototype.id} from item pack ${prototype.name} from plugin ${eventArgs.nameOfOriginPlugin}`)
+      itemPack.itemProtoTypes().forEach((prototype) => {
+        console.info(`Adding item '${prototype.name}' with id '${prototype.id}' from item pack ` + 
+          `'${itemPack.name}' from plugin '${eventArgs.nameOfOriginPlugin}'`);
         this.itemProtoTypes.set(prototype.id, prototype);
       });
     } else {
