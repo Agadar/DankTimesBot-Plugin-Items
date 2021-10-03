@@ -1,20 +1,21 @@
-import * as fs from "fs";
 import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
+import { CustomEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/custom-event-arguments";
 import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/empty-event-arguments";
 import { PreUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { AbstractItemPack } from "./abstract-item-pack";
-import { ChatEquipmentManager } from "./chat/chat-equipment-manager";
-import { ChatInventoryManager } from "./chat/chat-inventory-manager";
 import { ChatItemsData } from "./chat/chat-items-data";
+import { FileIOHelper } from "./file-io-helper";
 import { Item } from "./item/item";
 import { ItemProtoType } from "./item/item-prototype";
-import { ItemPack } from "./packs/basic-item-pack/item-pack";
+import { PlaceholderItemPrototype } from "./item/placeholder-item-prototype";
+import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
+import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 
 export class Plugin extends AbstractPlugin {
 
@@ -34,10 +35,12 @@ export class Plugin extends AbstractPlugin {
   private static readonly BUY_REASON = "buy.item";
   private static readonly SELL_REASON = "sell.item";
 
-  // Files
-  private static readonly ITEMS_CHATS_DATA_FILE = "items-chats-data.json";
+  // Events this plugin listens to
+  private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
 
   // Misc.
+  private readonly fileIOHelper = new FileIOHelper(this.loadDataFromFile.bind(this), this.saveDataToFile.bind(this));
+
   private chatsItemsData = new Map<number, ChatItemsData>();
   private itemProtoTypes = new Map<number, ItemProtoType>();
   private itemPacks = new Array<AbstractItemPack>();
@@ -45,11 +48,12 @@ export class Plugin extends AbstractPlugin {
   constructor() {
     super("Items", "1.0.0-alpha");
 
-    this.subscribeToPluginEvent(PluginEvent.BotStartup, this.loadData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
     this.subscribeToPluginEvent(PluginEvent.PreUserScoreChange, this.onPreUserScoreChange.bind(this));
     this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
-    this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
-    this.subscribeToPluginEvent(PluginEvent.BotShutdown, this.persistData.bind(this));
+    this.subscribeToPluginEvent(PluginEvent.BotShutdown, () => this.fileIOHelper.persistData(this.chatsItemsData));
+    this.subscribeToPluginEvent(PluginEvent.Custom, this.addItemPack.bind(this), "*", Plugin.ADD_ITEM_PACK_REASON);
   }
 
   /**
@@ -98,11 +102,12 @@ export class Plugin extends AbstractPlugin {
 
     let inventoryStr = "Your inventory contains the following items:\n";
     inventory.forEach((item) => {
-      inventoryStr += `\n${item.prototype.prettyName()}`;
+      const prototype = this.getOrCreateItemPrototype(item.prototypeId);
+      inventoryStr += `\n${prototype.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` worth <i>${item.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+      inventoryStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += ' each';
       }
@@ -123,8 +128,9 @@ export class Plugin extends AbstractPlugin {
 
     let equipmentStr = "You have the following items equipped:\n";
     equipment.forEach((item) => {
-      equipmentStr += `\n${item.prototype.prettyName()}`;
-      equipmentStr += ` worth <i>${item.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+      const prototype = this.getOrCreateItemPrototype(item.prototypeId);
+      equipmentStr += `\n${prototype.prettyName()}`;
+      equipmentStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
     });
     return equipmentStr;
   }
@@ -155,23 +161,17 @@ export class Plugin extends AbstractPlugin {
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === match.toLowerCase());
+    const itemAndPrototype = this.findItemAndPrototype(inventory, match);
 
-    if (!item) {
+    if (!itemAndPrototype) {
       return "😞 You don't have that item.";
     }
-    if (!item.prototype.equippable) {
-      return `You put ${item.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
+    if (!itemAndPrototype.prototype.equippable) {
+      return `You put ${itemAndPrototype.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
     const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
-    const incompatibleEquippedItem = equipment.find(equipped => equipped.prototype.tags.find(
-      equippedTag => item.prototype.tags.includes(equippedTag)))
-
-    if (incompatibleEquippedItem) {
-      return `Cannot equip at the same time with ${incompatibleEquippedItem.prototype.prettyName()}.`;
-    }
-    chatItemsData.moveToInventory(inventory, item, 1, equipment);
-    return `Equipped ${item.prototype.prettyName()}!`;
+    chatItemsData.moveToInventory(inventory, itemAndPrototype.item, 1, equipment);
+    return `Equipped ${itemAndPrototype.prototype.prettyName()}!`;
   }
 
   /**
@@ -183,14 +183,14 @@ export class Plugin extends AbstractPlugin {
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
-    const item = equipment.find((item) => item.name().toLowerCase() === match.toLowerCase());
+    const itemAndPrototype = this.findItemAndPrototype(equipment, match);
 
-    if (!item) {
+    if (!itemAndPrototype) {
       return "😞 You don't have that item equipped.";
     }
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    chatItemsData.moveToInventory(equipment, item, 1, inventory);
-    return `Unequipped ${item.prototype.prettyName()}!`;
+    chatItemsData.moveToInventory(equipment, itemAndPrototype.item, 1, inventory);
+    return `Unequipped ${itemAndPrototype.prototype.prettyName()}!`;
   }
 
   /**
@@ -202,18 +202,18 @@ export class Plugin extends AbstractPlugin {
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === match.toLowerCase());
+    const itemAndPrototype = this.findItemAndPrototype(inventory, match);
 
-    if (!item) {
+    if (!itemAndPrototype) {
       return "😞 You don't have that item.";
     }
-    if (!item.prototype.usable) {
-      return `You shake ${item.prototype.prettyName()} around for a bit and give it a lick. Nothing happens.`;
+    if (!itemAndPrototype.prototype.usable) {
+      return `You shake ${itemAndPrototype.prototype.prettyName()} around for a bit and give it a lick. Nothing happens.`;
     }
-    const useResult = item.prototype.onUse(chat, user, msg, match);
+    const useResult = itemAndPrototype.prototype.onUse(chat, user, msg, match);
 
-    if (item.prototype.consumedOnUse && useResult.shouldConsume) {
-      chatItemsData.removeFromInventory(inventory, item, 1);
+    if (itemAndPrototype.prototype.consumedOnUse && useResult.shouldConsume) {
+      chatItemsData.removeFromInventory(inventory, itemAndPrototype.item, 1);
     }
     return useResult.msg;
   }
@@ -229,11 +229,12 @@ export class Plugin extends AbstractPlugin {
     }
     let inventoryStr = "The shop has the following item(s) for sale:\n";
     chatItemsData.shopInventory.forEach((item) => {
-      inventoryStr += `\n${item.prototype.prettyName()}`;
+      const prototype = this.getOrCreateItemPrototype(item.prototypeId);
+      inventoryStr += `\n${prototype.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` for <i>${item.buyPrice(chatItemsData.scoreMedian)}</i> points`;
+      inventoryStr += ` for <i>${prototype.buyPrice(chatItemsData.scoreMedian)}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += ' each';
       }
@@ -254,18 +255,18 @@ export class Plugin extends AbstractPlugin {
       return "😞 You have to buy at least 1.";
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
-    const item = chatItemsData.shopInventory.find((shopItem) => shopItem.name().toLowerCase() === amountAndItemName.itemName);
+    const itemAndPrototype = this.findItemAndPrototype(chatItemsData.shopInventory, amountAndItemName.itemName);
 
-    if (!item) {
+    if (!itemAndPrototype) {
       return "😞 The shop doesn't have that item.";
     }
     let amount = amountAndItemName.amount;
-    const shopHasInsufficientAmount = item.stackSize < amount;
+    const shopHasInsufficientAmount = itemAndPrototype.item.stackSize < amount;
 
     if (shopHasInsufficientAmount) {
-      amount = item.stackSize;
+      amount = itemAndPrototype.item.stackSize;
     }
-    const individualBuyPrice = item.buyPrice(chatItemsData.scoreMedian);
+    const individualBuyPrice = itemAndPrototype.prototype.buyPrice(chatItemsData.scoreMedian);
     let buyPrice = amount * individualBuyPrice;
     const playerHasInsufficientFunds = buyPrice > user.score;
 
@@ -280,22 +281,22 @@ export class Plugin extends AbstractPlugin {
     const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
     buyPrice = chat.alterUserScore(alterScoreArgs);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    chatItemsData.moveToInventory(chatItemsData.shopInventory, item, amount, inventory);
+    chatItemsData.moveToInventory(chatItemsData.shopInventory, itemAndPrototype.item, amount, inventory);
     let successMsg: string;
 
     if (playerHasInsufficientFunds) {
-      successMsg = `You did not have enough points for ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `You did not have enough points for ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (shopHasInsufficientAmount) {
-      successMsg = `The shop did not have ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `The shop did not have ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Bought ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else {
-      successMsg = `Bought ${item.prototype.prettyName()} for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${itemAndPrototype.prototype.prettyName()} for <i>${-buyPrice}</i> points!`;
     }
     return successMsg;
   }
@@ -314,46 +315,57 @@ export class Plugin extends AbstractPlugin {
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    const item = inventory.find((inventoryItem) => inventoryItem.name().toLowerCase() === amountAndItemName.itemName);
+    const itemAndPrototype = this.findItemAndPrototype(inventory, match);
 
-    if (!item) {
+    if (!itemAndPrototype) {
       return "😞 You don't have that item.";
     }
     let amount = amountAndItemName.amount;
-    const playerHasInsufficientAmount = item.stackSize < amount;
+    const playerHasInsufficientAmount = itemAndPrototype.item.stackSize < amount;
 
     if (playerHasInsufficientAmount) {
-      amount = item.stackSize;
+      amount = itemAndPrototype.item.stackSize;
     }
-    let sellPrice = amount * item.sellPrice(chatItemsData.scoreMedian);
+    let sellPrice = amount * itemAndPrototype.prototype.sellPrice(chatItemsData.scoreMedian);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
-    chatItemsData.moveToInventory(inventory, item, amount, chatItemsData.shopInventory);
+    chatItemsData.moveToInventory(inventory, itemAndPrototype.item, amount, chatItemsData.shopInventory);
     let successMsg: string;
 
     if (playerHasInsufficientAmount) {
-      successMsg = `You did not have ${item.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead sold ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `You did not have ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead sold ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Sold ${item.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else {
-      successMsg = `Sold ${item.prototype.prettyName()} for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${itemAndPrototype.prototype.prettyName()} for <i>${sellPrice}</i> points!`;
     }
     return successMsg;
   }
+
 
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
     let data = this.chatsItemsData.get(chat.id);
     if (!data) {
       data = new ChatItemsData(chat.id);
       data.scoreMedian = this.calculateScoreMedian(chat);
-      this.itemPacks.forEach(pack => pack.onChatInitialisation(data));
       this.chatsItemsData.set(chat.id, data);
+      this.itemPacks.forEach(pack => pack.onChatInitialisation(data));
     }
     return data;
   }
+
+  private getOrCreateItemPrototype(prototypeId: number): ItemProtoType {
+    let prototype = this.itemProtoTypes.get(prototypeId);
+    if (!prototype) {
+      prototype = new PlaceholderItemPrototype(prototypeId);
+      this.itemProtoTypes.set(prototypeId, prototype);
+    }
+    return prototype;
+  }
+
 
   private determineAmountAndItemNameFromInput(match: string): { amount: number, itemName: string } {
     const matchSplit = match.split(" ");
@@ -379,27 +391,14 @@ export class Plugin extends AbstractPlugin {
     return { amount, itemName };
   }
 
-
-  private onHourlyTick(eventArgs: EmptyEventArguments): void {
-    const chatIds = Array.from(this.chatsItemsData.keys());
-    chatIds.forEach((chatId) => {
-      try {
-        const chat = this.getChat(chatId);
-
-        if (!chat) {
-          this.chatsItemsData.delete(chatId);
-
-        } else {
-          const newScoreMedian = this.calculateScoreMedian(chat);
-          const chatData = this.chatsItemsData.get(chatId);
-          chatData.scoreMedian = newScoreMedian;
-          this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData));
-        }
-      } catch (error) {
-        console.error(`Error while performing hourly tick for chat ${chatId} for plugin ${this.name}: ${error}`);
+  private findItemAndPrototype(inventory: Item[], match: string): { item: Item, prototype: ItemProtoType } | null {
+    return inventory.map((item) => {
+      const prototype = this.getOrCreateItemPrototype(item.prototypeId);
+      if (prototype.name.toLowerCase() === match.toLowerCase()) {
+        return { item: item, prototype: prototype };
       }
-    });
-    this.persistData();
+      return null;
+    }).find(result => result) ?? null;
   }
 
   private calculateScoreMedian(chat: Chat): number {
@@ -415,71 +414,58 @@ export class Plugin extends AbstractPlugin {
     return (users[Math.floor((users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
+
+  private onBotStartup(eventArgs: EmptyEventArguments): void {
+    this.chatsItemsData = this.fileIOHelper.loadData();
+    this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new BasicItemPack());
+    this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RPGEquipmentItemPack());
+  }
+
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
     this.chatsItemsData.forEach(data => this.itemPacks.forEach(pack => pack.OnNightlyUpdate(data)));
   }
 
-
-  private loadData(): void {
-
-    // Packs and prototypes from those packs (TODO: Clean up)
-    const directory = "plugins/DankTimesBot-Plugin-Items/packs/";
-    const packsDirs = fs.readdirSync(directory).filter((f: any) => fs.statSync(directory + "/" + f).isDirectory());
-    const packs = packsDirs.map(packDir => new (require(`./packs/${packDir}/item-pack.js`)).ItemPack());  // TODO: What if not found?
-    this.itemPacks = packs as ItemPack[];
-    this.itemPacks.forEach(pack => pack.itemProtoTypes().forEach(protoType => this.itemProtoTypes.set(protoType.id, protoType))); // TODO: What if id already exists?
-
-    // Chats data, from file
-    const rawChatsItemsData: any[] = this.loadDataFromFile(Plugin.ITEMS_CHATS_DATA_FILE);
-
-    if (!rawChatsItemsData) {
-      console.log(`No ${Plugin.ITEMS_CHATS_DATA_FILE} loaded, starting fresh`);
-      return;
-    }
-    this.chatsItemsData = new Map();
-
-    rawChatsItemsData.forEach(raw => {
-      const shopInventory = this.parseRawItems(raw.shopInventory);
-      const inventoryManager = this.parseRawInventoryManager(raw.inventoryManager);
-      const equipmentManager = this.parseRawEquipmentManager(raw.equipmentManager);
-      const data = new ChatItemsData(raw.chatId, inventoryManager, equipmentManager, shopInventory, raw.scoreMedian);
-      this.chatsItemsData.set(data.chatId, data);
-    });
-  }
-
-  private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): string {
+  private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
     const equipment = this.getOrCreateChatItemsData(event.chat).equipmentManager.getOrCreateEquipment(event.user);
-    equipment.forEach(item => item.prototype.onPreUserScoreChange(event));
-    return null;
-  }
-
-  private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {
-    const inventories = new Map<number, Item[]>();
-    inventoryManager?.forEach(raw => {
-      const items = this.parseRawItems(raw.inventory);
-      inventories.set(raw.userId, items);
+    equipment.forEach(item => {
+      const prototype = this.getOrCreateItemPrototype(item.prototypeId);
+      prototype.onPreUserScoreChange(event);
     });
-    return new ChatInventoryManager(inventories);
   }
 
-  private parseRawEquipmentManager(equipmentManager?: any): ChatEquipmentManager {
-    const equipments = new Map<number, Item[]>();
-    equipmentManager?.forEach(raw => {
-      const items = this.parseRawItems(raw.equipment);
-      equipments.set(raw.userId, items);
+  private onHourlyTick(eventArgs: EmptyEventArguments): void {
+    const chatIds = Array.from(this.chatsItemsData.keys());
+    chatIds.forEach((chatId) => {
+      try {
+        const chat = this.getChat(chatId);
+
+        if (!chat) {
+          this.chatsItemsData.delete(chatId);
+
+        } else {
+          const newScoreMedian = this.calculateScoreMedian(chat);
+          const chatData = this.chatsItemsData.get(chatId);
+          chatData.scoreMedian = newScoreMedian;
+          this.itemPacks.forEach(pack => pack.OnHourlyTick(chatData))
+        }
+      } catch (error) {
+        console.error(`Error while performing hourly tick for chat ${chatId} for plugin ${this.name}: ${error}`);
+      }
     });
-    return new ChatEquipmentManager(equipments);
+    this.fileIOHelper.persistData(this.chatsItemsData);
   }
 
-  private parseRawItems(rawItems?: any): Item[] {
-    return rawItems?.map(raw => {
-      const protoType = this.itemProtoTypes.get(raw.prototypeId);   // TODO: What if id not found?
-      return new Item(protoType, raw.stackSize);
-    }) ?? [];
-  }
+  private addItemPack(eventArgs: CustomEventArguments): void {
+    const itemPack = eventArgs.eventData as AbstractItemPack;
 
-  private persistData(): void {
-    this.saveDataToFile(Plugin.ITEMS_CHATS_DATA_FILE, this.chatsItemsData);
+    if (itemPack) {
+      this.itemPacks.push(itemPack);
+      itemPack.itemProtoTypes().forEach(prototype => {
+        console.info(`Adding item ${prototype.name} with id ${prototype.id} from item pack ${prototype.name} from plugin ${eventArgs.nameOfOriginPlugin}`)
+        this.itemProtoTypes.set(prototype.id, prototype);
+      });
+    } else {
+      console.error(`Failed to add item pack: ${JSON.stringify(eventArgs.eventData)}`);
+    }
   }
 }
-

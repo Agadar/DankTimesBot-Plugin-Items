@@ -3,13 +3,21 @@ import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
 import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
 
+/**
+ * Prototype for items. Instantiate this or a custom subclass of this to create a prototype with
+ * which items can be created.
+ */
 export class ItemProtoType {
+
+    private static readonly MINIMUM_MEDIAN = 100;
+    private static readonly MINIMUM_BUY_PRICE = 10;
+    private static readonly MINIMUM_SELL_PRICE = 5;
 
     constructor(
         public readonly id: number,
         public readonly name: string,
-        public readonly buyPriceRatioToMedian: number,
-        public readonly sellPriceRatioToMedian: number,
+        public readonly buyPriceRatioToMedian = 0,
+        public readonly sellPriceRatioToMedian = 0,
         public readonly icon?: string,
         public readonly description = "This item is indescribable",
         public readonly tags: string[] = [],
@@ -17,6 +25,14 @@ export class ItemProtoType {
         public readonly consumedOnUse: boolean = false,
         public readonly equippable: boolean = false
     ) {
+    }
+
+    public buyable(): boolean {
+        return this.buyPriceRatioToMedian > 0;
+    }
+
+    public sellable(): boolean {
+        return this.sellPriceRatioToMedian > 0;
     }
 
     public prettyName(): string {
@@ -49,6 +65,22 @@ export class ItemProtoType {
             prettified += `\n${this.description}`;
         }
         return prettified;
+    }
+
+    public buyPrice(scoreMedian: number): number {
+        scoreMedian = Math.max(scoreMedian, ItemProtoType.MINIMUM_MEDIAN);
+        let price = this.buyPriceRatioToMedian * scoreMedian;
+        price = Math.round(price);
+        price = Math.max(price, ItemProtoType.MINIMUM_BUY_PRICE);
+        return price;
+    }
+
+    public sellPrice(scoreMedian: number): number {
+        scoreMedian = Math.max(scoreMedian, ItemProtoType.MINIMUM_MEDIAN);
+        let price = this.sellPriceRatioToMedian * scoreMedian;
+        price = Math.round(price);
+        price = Math.max(price, ItemProtoType.MINIMUM_SELL_PRICE);
+        return price;
     }
 
     public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {

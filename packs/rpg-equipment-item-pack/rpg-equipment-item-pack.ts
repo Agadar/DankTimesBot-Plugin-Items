@@ -5,7 +5,7 @@ import { Item } from "../../item/item";
 import { ItemProtoType } from "../../item/item-prototype";
 import { RpgEquipment } from "./rpg-equipment";
 
-export class ItemPack extends AbstractItemPack {
+export class RPGEquipmentItemPack extends AbstractItemPack {
 
     private readonly numberOfItemsInShop = 5;
 
@@ -30,7 +30,7 @@ export class ItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const swords = new Item(this.relentlessLongsword, 2);
+        const swords = new Item(this.relentlessLongsword.id, 2);
         chatItemsData.shopInventory.push(swords);
     }
 

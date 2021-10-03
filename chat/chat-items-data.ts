@@ -13,12 +13,12 @@ export class ChatItemsData {
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {
         this.removeFromInventory(from, item, amount);
-        const itemToAdd = new Item(item.prototype, amount);
+        const itemToAdd = new Item(item.prototypeId, amount);
         this.addToInventory(to, itemToAdd);
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find(toFind => toFind.sameItemTypeAs(item));
+        const itemInTargetInventory = to.find(toFind => toFind.prototypeId == item.prototypeId);
 
         if (itemInTargetInventory) {
             itemInTargetInventory.stackSize += item.stackSize;

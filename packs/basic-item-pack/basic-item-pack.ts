@@ -4,7 +4,7 @@ import { Item } from "../../item/item";
 import { ItemProtoType } from "../../item/item-prototype";
 import { Cookie } from "./cookie";
 
-export class ItemPack extends AbstractItemPack {
+export class BasicItemPack extends AbstractItemPack {
 
     private readonly numberOfCookiesInShop = 10;
 
@@ -30,10 +30,10 @@ export class ItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const stonks = new Item(this.stonksProtoType, 1000);
+        const stonks = new Item(this.stonksProtoType.id, 1000);
         chatItemsData.shopInventory.push(stonks);
 
-        const cookies = new Item(this.cookieProtoType, this.numberOfCookiesInShop);
+        const cookies = new Item(this.cookieProtoType.id, this.numberOfCookiesInShop);
         chatItemsData.shopInventory.push(cookies);
     }
 
@@ -41,15 +41,15 @@ export class ItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public OnNightlyUpdate(chatItemsData: ChatItemsData): void {
-        const cookiesCount = chatItemsData.shopInventory.filter(item => item.prototype === this.cookieProtoType).length;
+        const cookiesCount = chatItemsData.shopInventory.filter(item => item.prototypeId === this.cookieProtoType.id).length;
         const diff = this.numberOfCookiesInShop - cookiesCount;
 
         if (diff > 0) {
-            const freshCookies = new Item(this.cookieProtoType, diff);
+            const freshCookies = new Item(this.cookieProtoType.id, diff);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshCookies);
         }
-        if (!chatItemsData.shopInventory.find(item => item.prototype === this.developerBrainProtoType) && Math.random() > 0.8) {
-            const freshBrain = new Item(this.developerBrainProtoType, 1);
+        if (!chatItemsData.shopInventory.find(item => item.prototypeId === this.developerBrainProtoType.id) && Math.random() > 0.8) {
+            const freshBrain = new Item(this.developerBrainProtoType.id, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshBrain);
         }
      }
