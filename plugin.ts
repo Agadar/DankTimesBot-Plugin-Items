@@ -107,9 +107,11 @@ export class Plugin extends AbstractPlugin {
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
-      if (item.stackSize > 1) {
-        inventoryStr += " each";
+      if (prototype.tradeable) {
+        inventoryStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+        if (item.stackSize > 1) {
+          inventoryStr += " each";
+        }
       }
     });
     return inventoryStr;
@@ -130,7 +132,9 @@ export class Plugin extends AbstractPlugin {
     equipment.forEach((item) => {
       const prototype = this.getOrCreateItemPrototype(item.prototypeId);
       equipmentStr += `\n${prototype.prettyName()}`;
-      equipmentStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+      if (prototype.tradeable) {
+        equipmentStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+      }
     });
     return equipmentStr;
   }
@@ -260,6 +264,9 @@ export class Plugin extends AbstractPlugin {
     if (!itemAndPrototype) {
       return "😞 The shop doesn't have that item.";
     }
+    if (!itemAndPrototype.prototype.tradeable) {
+      return "😞 This item cannot be bought.";
+    }
     let amount = amountAndItemName.amount;
     const shopHasInsufficientAmount = itemAndPrototype.item.stackSize < amount;
 
@@ -319,6 +326,9 @@ export class Plugin extends AbstractPlugin {
 
     if (!itemAndPrototype) {
       return "😞 You don't have that item.";
+    }
+    if (!itemAndPrototype.prototype.tradeable) {
+      return "😞 This item cannot be sold.";
     }
     let amount = amountAndItemName.amount;
     const playerHasInsufficientAmount = itemAndPrototype.item.stackSize < amount;

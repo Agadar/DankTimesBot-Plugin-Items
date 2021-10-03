@@ -9,7 +9,6 @@ import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plug
  */
 export class ItemProtoType {
 
-    private static readonly MINIMUM_MEDIAN = 100;
     private static readonly MINIMUM_BUY_PRICE = 10;
     private static readonly MINIMUM_SELL_PRICE = 5;
 
@@ -21,18 +20,11 @@ export class ItemProtoType {
         public readonly icon?: string,
         public readonly description = "This item is indescribable",
         public readonly tags: string[] = [],
-        public readonly usable: boolean = false,
-        public readonly consumedOnUse: boolean = false,
-        public readonly equippable: boolean = false,
+        public readonly usable = false,
+        public readonly consumedOnUse = false,
+        public readonly equippable = false,
+        public readonly tradeable = true
     ) {
-    }
-
-    public buyable(): boolean {
-        return this.buyPriceRatioToMedian > 0;
-    }
-
-    public sellable(): boolean {
-        return this.sellPriceRatioToMedian > 0;
     }
 
     public prettyName(): string {
@@ -52,11 +44,14 @@ export class ItemProtoType {
             tags.push("Usable");
 
             if (this.consumedOnUse) {
-                tags.push("Consumed On Use");
+                tags.push("Consumed on use");
             }
         }
         if (this.equippable) {
             tags.push("Equippable");
+        }
+        if (!this.tradeable) {
+            tags.push("Cannot be traded");
         }
         if (tags.length > 0) {
             prettified += `\n<i>${tags.join(", ")}</i>`;
@@ -68,7 +63,6 @@ export class ItemProtoType {
     }
 
     public buyPrice(scoreMedian: number): number {
-        scoreMedian = Math.max(scoreMedian, ItemProtoType.MINIMUM_MEDIAN);
         let price = this.buyPriceRatioToMedian * scoreMedian;
         price = Math.round(price);
         price = Math.max(price, ItemProtoType.MINIMUM_BUY_PRICE);
@@ -76,7 +70,6 @@ export class ItemProtoType {
     }
 
     public sellPrice(scoreMedian: number): number {
-        scoreMedian = Math.max(scoreMedian, ItemProtoType.MINIMUM_MEDIAN);
         let price = this.sellPriceRatioToMedian * scoreMedian;
         price = Math.round(price);
         price = Math.max(price, ItemProtoType.MINIMUM_SELL_PRICE);

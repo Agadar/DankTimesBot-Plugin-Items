@@ -9,6 +9,6 @@ export class PlaceholderItemPrototype extends ItemProtoType {
 
     constructor(id: number) {
         super(id, "Mysterious Object", 0, 0, "❓", "A riddle wrapped in a mystery inside an enigma",
-            ["Placeholder"], false, false, false);
+            ["Placeholder"], false, false, false, false);
     }
 }
