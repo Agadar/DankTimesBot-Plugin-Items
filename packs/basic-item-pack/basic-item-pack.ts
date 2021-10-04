@@ -8,7 +8,7 @@ export class BasicItemPack extends AbstractItemPack {
 
     private readonly numberOfCookiesInShop = 10;
 
-    private readonly stonksProtoType = new ItemProtoType(0, "Stonks", 0.1, 0.095, "📈", "\"Hodl!\"", ["Miscellaneous"]);
+    private readonly stonksProtoType = new ItemProtoType(0, "Stonks", 0.1, 0.09, "📈", "\"Hodl!\"", ["Miscellaneous"]);
     private readonly cookieProtoType = new Cookie(1);
     private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 0.3, 0.15, "🧠",
         "It's extraordinarily smooth.", ["Miscellaneous"]);

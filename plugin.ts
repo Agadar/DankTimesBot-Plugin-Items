@@ -170,10 +170,14 @@ export class Plugin extends AbstractPlugin {
     if (!itemAndPrototype) {
       return "😞 You don't have that item.";
     }
-    if (!itemAndPrototype.prototype.equippable) {
+    if (itemAndPrototype.prototype.equipmentSlots.length == 0) {
       return `You put ${itemAndPrototype.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
     const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+
+    if (!this.canEquipItem(equipment, itemAndPrototype.prototype)) {
+      return `😞 The required item slot is already occupied by another item.`;
+    }
     chatItemsData.moveToInventory(inventory, itemAndPrototype.item, 1, equipment);
     return `Equipped ${itemAndPrototype.prototype.prettyName()}!`;
   }
@@ -422,6 +426,13 @@ export class Plugin extends AbstractPlugin {
     return (users[Math.floor((users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
   }
 
+  private canEquipItem(equipment: Item[], itemPrototype: ItemProtoType): boolean {
+    return equipment.findIndex(equippedItem => {
+      const equippedPrototype = this.getOrCreateItemPrototype(equippedItem.prototypeId);
+      return equippedPrototype.equipmentSlots.findIndex(equippedSlot => itemPrototype.equipmentSlots.includes(equippedSlot)) > -1;
+    }) < 0;
+  }
+
   private onBotStartup(eventArgs: EmptyEventArguments): void {
     this.chatsItemsData = this.fileIOHelper.loadData();
     this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new BasicItemPack());
@@ -467,9 +478,9 @@ export class Plugin extends AbstractPlugin {
 
     if (itemPack) {
       this.itemPacks.push(itemPack);
-      itemPack.itemProtoTypes().forEach((prototype) => {
-        console.info(`Adding item '${prototype.name}' with id '${prototype.id}' from item pack ` + 
-          `'${itemPack.name}' from plugin '${eventArgs.nameOfOriginPlugin}'`);
+      const prototypes = itemPack.itemProtoTypes();
+      console.info(`Adding ${prototypes.length} items from item pack '${itemPack.name}'`);
+      prototypes.forEach((prototype) => {
         this.itemProtoTypes.set(prototype.id, prototype);
       });
     } else {

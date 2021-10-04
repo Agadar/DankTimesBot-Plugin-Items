@@ -2,6 +2,7 @@ import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
 import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
+import { EquipmentSlot } from "./equipment-slot";
 
 /**
  * Prototype for items. Instantiate this or a custom subclass of this to create a prototype with
@@ -22,7 +23,7 @@ export class ItemProtoType {
         public readonly tags: string[] = [],
         public readonly usable = false,
         public readonly consumedOnUse = false,
-        public readonly equippable = false,
+        public readonly equipmentSlots: EquipmentSlot[] = [],
         public readonly tradeable = true
     ) {
     }
@@ -47,7 +48,7 @@ export class ItemProtoType {
                 tags.push("Consumed on use");
             }
         }
-        if (this.equippable) {
+        if (this.equipmentSlots.length > 0) {
             tags.push("Equippable");
         }
         if (!this.tradeable) {
