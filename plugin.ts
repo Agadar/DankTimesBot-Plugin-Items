@@ -326,7 +326,7 @@ export class Plugin extends AbstractPlugin {
     }
     const chatItemsData = this.getOrCreateChatItemsData(chat);
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
-    const itemAndPrototype = this.findItemAndPrototype(inventory, match);
+    const itemAndPrototype = this.findItemAndPrototype(inventory, amountAndItemName.itemName);
 
     if (!itemAndPrototype) {
       return "😞 You don't have that item.";
