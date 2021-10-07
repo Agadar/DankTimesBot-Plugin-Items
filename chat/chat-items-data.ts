@@ -8,8 +8,7 @@ export class ChatItemsData {
         public readonly chatId: number,
         public readonly inventoryManager = new ChatInventoryManager(),
         public readonly equipmentManager = new ChatEquipmentManager(),
-        public readonly shopInventory = new Array<Item>(),
-        public scoreMedian = 0) { }
+        public readonly shopInventory = new Array<Item>()) { }
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {
         this.removeFromInventory(from, item, amount);

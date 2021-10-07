@@ -10,21 +10,18 @@ import { EquipmentSlot } from "./equipment-slot";
  */
 export class ItemProtoType {
 
-    private static readonly MINIMUM_BUY_PRICE = 10;
-    private static readonly MINIMUM_SELL_PRICE = 5;
-
     constructor(
         public readonly id: number,
         public readonly name: string,
-        public readonly buyPriceRatioToMedian = 0,
-        public readonly sellPriceRatioToMedian = 0,
+        public readonly buyPrice = 0,
+        public readonly sellPrice = 0,
         public readonly icon?: string,
         public readonly description = "This item is indescribable",
         public readonly tags: string[] = [],
         public readonly usable = false,
         public readonly consumedOnUse = false,
         public readonly equipmentSlots: EquipmentSlot[] = [],
-        public readonly tradeable = true
+        public readonly tradeable = true,
     ) {
     }
 
@@ -61,20 +58,6 @@ export class ItemProtoType {
             prettified += `\n${this.description}`;
         }
         return prettified;
-    }
-
-    public buyPrice(scoreMedian: number): number {
-        let price = this.buyPriceRatioToMedian * scoreMedian;
-        price = Math.round(price);
-        price = Math.max(price, ItemProtoType.MINIMUM_BUY_PRICE);
-        return price;
-    }
-
-    public sellPrice(scoreMedian: number): number {
-        let price = this.sellPriceRatioToMedian * scoreMedian;
-        price = Math.round(price);
-        price = Math.max(price, ItemProtoType.MINIMUM_SELL_PRICE);
-        return price;
     }
 
     public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {

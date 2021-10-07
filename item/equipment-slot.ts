@@ -12,5 +12,5 @@ export enum EquipmentSlot {
     Legs,
     Feet,
     Fingers,
-    Neck
+    Neck,
 }

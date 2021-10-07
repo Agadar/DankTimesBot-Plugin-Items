@@ -2,6 +2,7 @@ import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
+import { ChatSettingTemplate } from "../../src/chat/settings/chat-setting-template";
 import { User } from "../../src/chat/user/user";
 import { CustomEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/custom-event-arguments";
 import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/empty-event-arguments";
@@ -39,6 +40,8 @@ export class Plugin extends AbstractPlugin {
   private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
 
   // Misc.
+  private static readonly ITEMS_PRICES_MULTIPLIER_SETTING = "items.prices.multiplier";
+
   private readonly fileIOHelper = new FileIOHelper(this.loadDataFromFile.bind(this), this.saveDataToFile.bind(this));
 
   private chatsItemsData = new Map<number, ChatItemsData>();
@@ -71,6 +74,27 @@ export class Plugin extends AbstractPlugin {
     const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
     const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
     return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd];
+  }
+
+  /**
+   * @override
+   */
+  public getPluginSpecificChatSettings(): Array<ChatSettingTemplate<any>> {
+    const priceMultiplierSetting = new ChatSettingTemplate(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING,
+      "The multiplier for buy and sell prices", 100,
+      original => {
+        const asNumber = Number(original);
+        if (isNaN(asNumber)) {
+            throw new RangeError("The value must be a number!");
+        }
+        return asNumber;
+      },
+      value => {
+        if (value <= 0) {
+          throw new RangeError("The value must be greater than 0!");
+        }
+      });
+      return [priceMultiplierSetting];
   }
 
   /**
@@ -108,7 +132,8 @@ export class Plugin extends AbstractPlugin {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
       if (prototype.tradeable) {
-        inventoryStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+        const price = this.calculatePrice(chat, prototype.sellPrice);
+        inventoryStr += ` worth <i>${price}</i> points`;
         if (item.stackSize > 1) {
           inventoryStr += " each";
         }
@@ -133,7 +158,8 @@ export class Plugin extends AbstractPlugin {
       const prototype = this.getOrCreateItemPrototype(item.prototypeId);
       equipmentStr += `\n${prototype.prettyName()}`;
       if (prototype.tradeable) {
-        equipmentStr += ` worth <i>${prototype.sellPrice(chatItemsData.scoreMedian)}</i> points`;
+        const price = this.calculatePrice(chat, prototype.sellPrice);
+        equipmentStr += ` worth <i>${price}}</i> points`;
       }
     });
     return equipmentStr;
@@ -242,7 +268,8 @@ export class Plugin extends AbstractPlugin {
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      inventoryStr += ` for <i>${prototype.buyPrice(chatItemsData.scoreMedian)}</i> points`;
+      const price = this.calculatePrice(chat, prototype.buyPrice);
+      inventoryStr += ` for <i>${price}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += " each";
       }
@@ -277,7 +304,7 @@ export class Plugin extends AbstractPlugin {
     if (shopHasInsufficientAmount) {
       amount = itemAndPrototype.item.stackSize;
     }
-    const individualBuyPrice = itemAndPrototype.prototype.buyPrice(chatItemsData.scoreMedian);
+    const individualBuyPrice = this.calculatePrice(chat, itemAndPrototype.prototype.buyPrice);
     let buyPrice = amount * individualBuyPrice;
     const playerHasInsufficientFunds = buyPrice > user.score;
 
@@ -340,7 +367,7 @@ export class Plugin extends AbstractPlugin {
     if (playerHasInsufficientAmount) {
       amount = itemAndPrototype.item.stackSize;
     }
-    let sellPrice = amount * itemAndPrototype.prototype.sellPrice(chatItemsData.scoreMedian);
+    let sellPrice = amount * this.calculatePrice(chat, itemAndPrototype.prototype.sellPrice);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
     chatItemsData.moveToInventory(inventory, itemAndPrototype.item, amount, chatItemsData.shopInventory);
@@ -363,7 +390,6 @@ export class Plugin extends AbstractPlugin {
     let data = this.chatsItemsData.get(chat.id);
     if (!data) {
       data = new ChatItemsData(chat.id);
-      data.scoreMedian = this.calculateScoreMedian(chat);
       this.chatsItemsData.set(chat.id, data);
       this.itemPacks.forEach((pack) => pack.onChatInitialisation(data));
     }
@@ -413,24 +439,16 @@ export class Plugin extends AbstractPlugin {
     }).find((result) => result) ?? null;
   }
 
-  private calculateScoreMedian(chat: Chat): number {
-    const users = chat.sortedUsers().filter((user) => user && (user.score > 0 || user.lastScoreChange !== 0));
-
-    if (users.length === 0) {
-      return 0;
-    }
-
-    if (users.length % 2 !== 0) {
-      return users[Math.floor(users.length / 2)].score;
-    }
-    return (users[Math.floor((users.length - 1) / 2)].score + users[Math.floor(users.length / 2)].score) / 2.0;
+  private canEquipItem(equipment: Item[], itemPrototype: ItemProtoType): boolean {
+    return equipment.findIndex((equippedItem) => {
+      const equippedPrototype = this.getOrCreateItemPrototype(equippedItem.prototypeId);
+      return equippedPrototype.equipmentSlots.findIndex((equippedSlot) => itemPrototype.equipmentSlots.includes(equippedSlot)) > -1;
+    }) < 0;
   }
 
-  private canEquipItem(equipment: Item[], itemPrototype: ItemProtoType): boolean {
-    return equipment.findIndex(equippedItem => {
-      const equippedPrototype = this.getOrCreateItemPrototype(equippedItem.prototypeId);
-      return equippedPrototype.equipmentSlots.findIndex(equippedSlot => itemPrototype.equipmentSlots.includes(equippedSlot)) > -1;
-    }) < 0;
+  private calculatePrice(chat: Chat, price: number): number {
+    const multiplier = chat.getSetting<number>(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING);
+    return Math.ceil(price * multiplier);
   }
 
   private onBotStartup(eventArgs: EmptyEventArguments): void {
@@ -461,9 +479,7 @@ export class Plugin extends AbstractPlugin {
           this.chatsItemsData.delete(chatId);
 
         } else {
-          const newScoreMedian = this.calculateScoreMedian(chat);
           const chatData = this.chatsItemsData.get(chatId);
-          chatData.scoreMedian = newScoreMedian;
           this.itemPacks.forEach((pack) => pack.OnHourlyTick(chatData));
         }
       } catch (error) {

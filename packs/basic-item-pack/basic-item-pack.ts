@@ -8,12 +8,12 @@ export class BasicItemPack extends AbstractItemPack {
 
     private readonly numberOfCookiesInShop = 10;
 
-    private readonly stonksProtoType = new ItemProtoType(0, "Stonks", 0.1, 0.09, "📈", "\"Hodl!\"", ["Miscellaneous"]);
+    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 200, 190, "🪙", "Limited Edition", ["Miscellaneous"]);
     private readonly cookieProtoType = new Cookie(1);
-    private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 0.3, 0.15, "🧠",
+    private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 300, 150, "🧠",
         "It's extraordinarily smooth.", ["Miscellaneous"]);
 
-    private readonly protoTypes = [ this.stonksProtoType, this.cookieProtoType, this.developerBrainProtoType ];
+    private readonly protoTypes = [ this.dtbCoinPrototype, this.cookieProtoType, this.developerBrainProtoType ];
 
     constructor() {
         super("BasicItemPack");
@@ -30,8 +30,8 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const stonks = new Item(this.stonksProtoType.id, 1000);
-        chatItemsData.shopInventory.push(stonks);
+        const dtbCoins = new Item(this.dtbCoinPrototype.id, 1000);
+        chatItemsData.shopInventory.push(dtbCoins);
 
         const cookies = new Item(this.cookieProtoType.id, this.numberOfCookiesInShop);
         chatItemsData.shopInventory.push(cookies);

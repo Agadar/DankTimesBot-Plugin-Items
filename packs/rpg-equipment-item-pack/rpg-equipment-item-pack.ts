@@ -9,7 +9,7 @@ import { RpgEquipment } from "./rpg-equipment";
 // TODO: Clean some of the mess up.
 export class RPGEquipmentItemPack extends AbstractItemPack {
 
-    private readonly pricemodifier = 0.25;
+    private readonly pricemodifier = 200;
 
     private readonly oneHandedItemProtoTypes = new Array<ItemProtoType>();
     private readonly twoHandedItemProtoTypes = new Array<ItemProtoType>();
@@ -39,61 +39,61 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     private readonly offHandItems = [
         { icon: "🔮", name: "Crystal Ball" },
         { icon: "🛡️", name: "Shield" },
-        { icon: "📯", name: "Warhorn" }
+        { icon: "📯", name: "Warhorn" },
     ];
 
     private readonly effects = [
         {
             name: "Devout", plugin: AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             reason: AlterUserScoreArgs.NORMAL_DANKTIME_REASON, modifier: 0.05,
-            description: "Increases normal dank time points received by"
+            description: "Increases normal dank time points received by",
         },
 
         {
             name: "Sentinel", plugin: AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             reason: AlterUserScoreArgs.RANDOM_DANKTIME_REASON, modifier: 0.05,
-            description: "Increases random dank time points received by"
+            description: "Increases random dank time points received by",
         },
 
         {
             name: "Eternal", plugin: AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             reason: AlterUserScoreArgs.HARDCOREMODE_PUNISHMENT_REASON, modifier: -0.125,
-            description: "Reduces hardcore mode punishment severity by"
+            description: "Reduces hardcore mode punishment severity by",
         },
 
         {
             name: "Pious", plugin: "Life", reason: "workCompleted", modifier: 0.05,
-            description: "Increases points gained from working by"
+            description: "Increases points gained from working by",
         },
 
         {
             name: "Mastermind", plugin: "Life", reason: "crimeCommitted", modifier: 0.05,
-            description: "Increases points gained from committing crimes by"
+            description: "Increases points gained from committing crimes by",
         },
 
         {
             name: "Succubus", plugin: "Life", reason: "bribe", modifier: -0.1,
-            description: "Reduces the cost of bribes by"
+            description: "Reduces the cost of bribes by",
         },
 
         {
             name: "Liberator", plugin: "Life", reason: "breakoutSucceeded", modifier: 0.1,
-            description: "Increases points gained from breaking out players by"
+            description: "Increases points gained from breaking out players by",
         },
 
         {
             name: "Oracle", plugin: "Blackjack", reason: "winner.reward", modifier: 0.01,
-            description: "Increases points gained from winning blackjack by"
+            description: "Increases points gained from winning blackjack by",
         },
 
         {
             name: "Immortal", plugin: "Russian Roulette", reason: "bullet.in.cylinder", modifier: -0.05,
-            description: "Reduces points lost from losing russian roulette by"
+            description: "Reduces points lost from losing russian roulette by",
         },
 
         {
             name: "Fool-Hearted", plugin: "Russian Roulette", reason: "no.bullet.in.cylinder", modifier: 0.05,
-            description: "Increases points gained from winning russian roulette by"
+            description: "Increases points gained from winning russian roulette by",
         },
     ];
 
@@ -104,16 +104,16 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         let twoHandedId = 1100;
         let offHandId = 1200;
 
-        this.effects.forEach(effect => {
-            this.oneHandedWeapons.forEach(item => {
+        this.effects.forEach((effect) => {
+            this.oneHandedWeapons.forEach((item) => {
                 const weapon = this.createWeapon(1.25, effect, item, oneHandedId++, ["Main Hand"], [EquipmentSlot.MainHand]);
                 this.oneHandedItemProtoTypes.push(weapon);
             });
-            this.twoHandedWeapons.forEach(item => {
+            this.twoHandedWeapons.forEach((item) => {
                 const weapon = this.createWeapon(2, effect, item, twoHandedId++, ["Two-Handed"], [EquipmentSlot.MainHand, EquipmentSlot.OffHand]);
                 this.twoHandedItemProtoTypes.push(weapon);
             });
-            this.offHandItems.forEach(item => {
+            this.offHandItems.forEach((item) => {
                 const weapon = this.createWeapon(0.75, effect, item, offHandId++, ["Off-Hand"], [EquipmentSlot.OffHand]);
                 this.offHandItemProtoTypes.push(weapon);
             });
@@ -137,7 +137,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         for (let i = 0; i < chatItemsData.shopInventory.length; i++) {
             const item = chatItemsData.shopInventory[i];
 
-            if (prototypes.find(prototype => prototype.id === item.prototypeId)) {
+            if (prototypes.find((prototype) => prototype.id === item.prototypeId)) {
                 chatItemsData.shopInventory.splice(i, 1);
                 i--;
             }
@@ -152,7 +152,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         if (random < 1 / 3) {
             this.addRandomEquipment(this.oneHandedItemProtoTypes, chatItemsData);
         } else if (random < 2 / 3) {
-            this.addRandomEquipment(this.twoHandedItemProtoTypes, chatItemsData)
+            this.addRandomEquipment(this.twoHandedItemProtoTypes, chatItemsData);
         } else {
             this.addRandomEquipment(this.offHandItemProtoTypes, chatItemsData);
         }
@@ -167,7 +167,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
 
     // TODO: Cleanup.
     private createWeapon(modifier: number, effect: { name: string; plugin: string; reason: string; modifier: number; description: string; },
-        item: { icon: string; name: string; }, id: number, tags: string[], slots: EquipmentSlot[]) {
+                         item: { icon: string; name: string; }, id: number, tags: string[], slots: EquipmentSlot[]) {
 
         let effectModifier = Math.round(modifier * effect.modifier * 100);
         const description = `${effect.description} ${Math.abs(effectModifier)}%`;
