@@ -34,6 +34,31 @@ export class ItemAesthetics {
             new ItemAesthetics("🔮", "Crystal Ball"),
             new ItemAesthetics("🛡️", "Shield"),
             new ItemAesthetics("📯", "Warhorn"),
+            new ItemAesthetics("🛡️", "Aegis"),
+            new ItemAesthetics("🛡️", "Bulwark"),
+            new ItemAesthetics("🛡️", "Crest"),
+        ];
+    }
+
+    public static rings(): ItemAesthetics[] {
+        return [
+            new ItemAesthetics("💍", "Ring"),
+            new ItemAesthetics("💍", "Signet"),
+            new ItemAesthetics("💍", "Loop"),
+            new ItemAesthetics("💍", "Band"),
+        ];
+    }
+
+    public static necklaces() : ItemAesthetics[] {
+        return [
+            new ItemAesthetics("📿", "Necklace"),
+            new ItemAesthetics("📿", "Collar"),
+            new ItemAesthetics("📿", "Choker"),
+            new ItemAesthetics("📿", "Talisman"),
+            new ItemAesthetics("📿", "Pendant"),
+            new ItemAesthetics("📿", "Amulet"),
+            new ItemAesthetics("📿", "Chain"),
+            new ItemAesthetics("📿", "Medallion"),
         ];
     }
 }

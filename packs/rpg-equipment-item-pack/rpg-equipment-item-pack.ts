@@ -39,6 +39,8 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         this.addRandomEquipmentOfType(this.rpgPrototypes.oneHandedItemProtoTypes, chatItemsData);
         this.addRandomEquipmentOfType(this.rpgPrototypes.twoHandedItemProtoTypes, chatItemsData);
         this.addRandomEquipmentOfType(this.rpgPrototypes.offHandItemProtoTypes, chatItemsData);
+        this.addRandomEquipmentOfType(this.rpgPrototypes.ringItemProtoTypes, chatItemsData);
+        this.addRandomEquipmentOfType(this.rpgPrototypes.necklaceItemProtoTypes, chatItemsData);
         this.addRandomEquipment(chatItemsData);
     }
 
@@ -62,12 +64,16 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     private addRandomEquipment(chatItemsData: ChatItemsData) {
         const random = Math.random();
 
-        if (random < 1 / 3) {
+        if (random < 1 / 5) {
             this.addRandomEquipmentOfType(this.rpgPrototypes.oneHandedItemProtoTypes, chatItemsData);
-        } else if (random < 2 / 3) {
+        } else if (random < 2 / 5) {
             this.addRandomEquipmentOfType(this.rpgPrototypes.twoHandedItemProtoTypes, chatItemsData);
-        } else {
+        } else if (random < 3 / 5) {
             this.addRandomEquipmentOfType(this.rpgPrototypes.offHandItemProtoTypes, chatItemsData);
+        } else if (random < 4 / 5) {
+            this.addRandomEquipmentOfType(this.rpgPrototypes.ringItemProtoTypes, chatItemsData);
+        } else {
+            this.addRandomEquipmentOfType(this.rpgPrototypes.necklaceItemProtoTypes, chatItemsData);
         }
     }
 

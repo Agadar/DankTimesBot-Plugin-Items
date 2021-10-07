@@ -9,6 +9,8 @@ export class RpgPrototypes {
     public readonly oneHandedItemProtoTypes = new Array<ItemProtoType>();
     public readonly twoHandedItemProtoTypes = new Array<ItemProtoType>();
     public readonly offHandItemProtoTypes = new Array<ItemProtoType>();
+    public readonly ringItemProtoTypes = new Array<ItemProtoType>();
+    public readonly necklaceItemProtoTypes = new Array<ItemProtoType>();
 
     private static readonly pricemodifier = 200;
 
@@ -16,6 +18,8 @@ export class RpgPrototypes {
         let oneHandedId = 1000;
         let twoHandedId = 1100;
         let offHandId = 1200;
+        let ringId = 1300;
+        let necklaceId = 1400;
 
         ItemEffect.pointAlteringEffects().forEach((effect) => {
             ItemAesthetics.oneHandedWeapons().forEach((item) => {
@@ -30,11 +34,20 @@ export class RpgPrototypes {
                 const weapon = this.createWeapon(0.75, effect, item, offHandId++, ["Off-Hand"], [EquipmentSlot.OffHand]);
                 this.offHandItemProtoTypes.push(weapon);
             });
+            ItemAesthetics.rings().forEach((item) => {
+                const weapon = this.createWeapon(0.5, effect, item, ringId++, ["Finger"], [EquipmentSlot.Fingers]);
+                this.ringItemProtoTypes.push(weapon);
+            });
+            ItemAesthetics.necklaces().forEach((item) => {
+                const weapon = this.createWeapon(0.5, effect, item, necklaceId++, ["Neck"], [EquipmentSlot.Neck]);
+                this.necklaceItemProtoTypes.push(weapon);
+            });
         });
     }
 
     public get allPrototypes(): Array<ItemProtoType> {
-        return this.oneHandedItemProtoTypes.concat(this.twoHandedItemProtoTypes).concat(this.offHandItemProtoTypes);
+        return this.oneHandedItemProtoTypes.concat(this.twoHandedItemProtoTypes).concat(this.offHandItemProtoTypes)
+            .concat(this.ringItemProtoTypes).concat(this.necklaceItemProtoTypes);
     }
 
     private createWeapon(modifier: number, effect: ItemEffect, itemAesthetics: ItemAesthetics,
