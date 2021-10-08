@@ -20,6 +20,7 @@ export class RpgPrototypes {
         let offHandId = 1200;
         let ringId = 1300;
         let necklaceId = 1400;
+        let newShieldsId = 1500;
 
         ItemEffect.pointAlteringEffects().forEach((effect) => {
             ItemAesthetics.oneHandedWeapons().forEach((item) => {
@@ -41,6 +42,10 @@ export class RpgPrototypes {
             ItemAesthetics.necklaces().forEach((item) => {
                 const weapon = this.createWeapon(0.5, effect, item, necklaceId++, ["Neck"], [EquipmentSlot.Neck]);
                 this.necklaceItemProtoTypes.push(weapon);
+            });
+            ItemAesthetics.newShields().forEach((item) => {
+                const weapon = this.createWeapon(0.75, effect, item, newShieldsId++, ["Off-Hand"], [EquipmentSlot.OffHand]);
+                this.offHandItemProtoTypes.push(weapon);
             });
         });
     }

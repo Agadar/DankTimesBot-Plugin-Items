@@ -159,7 +159,7 @@ export class Plugin extends AbstractPlugin {
       equipmentStr += `\n${prototype.prettyName()}`;
       if (prototype.tradeable) {
         const price = this.calculatePrice(chat, prototype.sellPrice);
-        equipmentStr += ` worth <i>${price}}</i> points`;
+        equipmentStr += ` worth <i>${price}</i> points`;
       }
     });
     return equipmentStr;

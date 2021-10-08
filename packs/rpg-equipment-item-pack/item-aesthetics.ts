@@ -34,9 +34,6 @@ export class ItemAesthetics {
             new ItemAesthetics("🔮", "Crystal Ball"),
             new ItemAesthetics("🛡️", "Shield"),
             new ItemAesthetics("📯", "Warhorn"),
-            new ItemAesthetics("🛡️", "Aegis"),
-            new ItemAesthetics("🛡️", "Bulwark"),
-            new ItemAesthetics("🛡️", "Crest"),
         ];
     }
 
@@ -59,6 +56,14 @@ export class ItemAesthetics {
             new ItemAesthetics("📿", "Amulet"),
             new ItemAesthetics("📿", "Chain"),
             new ItemAesthetics("📿", "Medallion"),
+        ];
+    }
+
+    public static newShields(): ItemAesthetics[] {
+        return [
+            new ItemAesthetics("🛡️", "Aegis"),
+            new ItemAesthetics("🛡️", "Bulwark"),
+            new ItemAesthetics("🛡️", "Crest"),
         ];
     }
 }

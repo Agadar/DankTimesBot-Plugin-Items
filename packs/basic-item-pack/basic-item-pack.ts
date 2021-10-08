@@ -8,9 +8,9 @@ export class BasicItemPack extends AbstractItemPack {
 
     private readonly numberOfCookiesInShop = 10;
 
-    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 200, 190, "🪙", "Limited Edition", ["Miscellaneous"]);
+    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 40, 38, "🪙", "Limited Edition", ["Miscellaneous"]);
     private readonly cookieProtoType = new Cookie(1);
-    private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 300, 150, "🧠",
+    private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 60, 30, "🧠",
         "It's extraordinarily smooth.", ["Miscellaneous"]);
 
     private readonly protoTypes = [ this.dtbCoinPrototype, this.cookieProtoType, this.developerBrainProtoType ];

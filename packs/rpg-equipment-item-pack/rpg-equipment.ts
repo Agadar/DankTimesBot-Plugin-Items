@@ -4,6 +4,8 @@ import { ItemProtoType } from "../../item/item-prototype";
 
 export class RpgEquipment extends ItemProtoType {
 
+    public static readonly ANY = "*";
+
     constructor(
         id: number,
         name: string,
@@ -21,7 +23,8 @@ export class RpgEquipment extends ItemProtoType {
     }
 
     public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
-        if (event.nameOfOriginPlugin === this.nameOfOriginPlugin && event.reason === this.scoreChangeReason) {
+        if ((this.nameOfOriginPlugin === RpgEquipment.ANY || event.nameOfOriginPlugin === this.nameOfOriginPlugin) &&
+            (this.scoreChangeReason === RpgEquipment.ANY || event.reason === this.scoreChangeReason)) {
             event.changeInScore *= this.modifier;
         }
     }
