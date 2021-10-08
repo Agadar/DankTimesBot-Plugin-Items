@@ -200,12 +200,19 @@ export class Plugin extends AbstractPlugin {
       return `You put ${itemAndPrototype.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
     const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+    const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, itemAndPrototype.prototype);
+    let equippedText = `Equipped ${itemAndPrototype.prototype.prettyName()}!`;
 
-    if (!this.canEquipItem(equipment, itemAndPrototype.prototype)) {
-      return `😞 The required item slot is already occupied by another item.`;
+    if (itemsOccupyingDesiredSlots.length > 0) {
+      equippedText += "\n";
+      itemsOccupyingDesiredSlots.forEach(itemOccupyingDesiredSlot => {
+        const unequippedPrototype = this.getOrCreateItemPrototype(itemOccupyingDesiredSlot.prototypeId);
+        chatItemsData.moveToInventory(equipment, itemOccupyingDesiredSlot, 1, inventory);
+        equippedText += `\nUnequipped ${unequippedPrototype.prettyName()}!`;
+      });
     }
     chatItemsData.moveToInventory(inventory, itemAndPrototype.item, 1, equipment);
-    return `Equipped ${itemAndPrototype.prototype.prettyName()}!`;
+    return equippedText;
   }
 
   /**
@@ -439,11 +446,11 @@ export class Plugin extends AbstractPlugin {
     }).find((result) => result) ?? null;
   }
 
-  private canEquipItem(equipment: Item[], itemPrototype: ItemProtoType): boolean {
-    return equipment.findIndex((equippedItem) => {
+  private itemsOccupyingDesiredSlots(equipment: Item[], itemPrototype: ItemProtoType): Item[] {
+    return equipment.filter((equippedItem) => {
       const equippedPrototype = this.getOrCreateItemPrototype(equippedItem.prototypeId);
       return equippedPrototype.equipmentSlots.findIndex((equippedSlot) => itemPrototype.equipmentSlots.includes(equippedSlot)) > -1;
-    }) < 0;
+    });
   }
 
   private calculatePrice(chat: Chat, price: number): number {
