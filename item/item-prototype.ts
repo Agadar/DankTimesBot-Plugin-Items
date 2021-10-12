@@ -22,6 +22,7 @@ export class ItemProtoType {
         public readonly consumedOnUse = false,
         public readonly equipmentSlots: EquipmentSlot[] = [],
         public readonly tradeable = true,
+        public readonly staticPrice = false
     ) {
     }
 

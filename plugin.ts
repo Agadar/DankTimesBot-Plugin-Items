@@ -132,7 +132,7 @@ export class Plugin extends AbstractPlugin {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
       if (prototype.tradeable) {
-        const price = this.calculatePrice(chat, prototype.sellPrice);
+        const price = this.calculatePrice(chat, prototype.sellPrice, prototype.staticPrice);
         inventoryStr += ` worth <i>${price}</i> points`;
         if (item.stackSize > 1) {
           inventoryStr += " each";
@@ -158,7 +158,7 @@ export class Plugin extends AbstractPlugin {
       const prototype = this.getOrCreateItemPrototype(item.prototypeId);
       equipmentStr += `\n${prototype.prettyName()}`;
       if (prototype.tradeable) {
-        const price = this.calculatePrice(chat, prototype.sellPrice);
+        const price = this.calculatePrice(chat, prototype.sellPrice, prototype.staticPrice);
         equipmentStr += ` worth <i>${price}</i> points`;
       }
     });
@@ -275,7 +275,7 @@ export class Plugin extends AbstractPlugin {
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      const price = this.calculatePrice(chat, prototype.buyPrice);
+      const price = this.calculatePrice(chat, prototype.buyPrice, prototype.staticPrice);
       inventoryStr += ` for <i>${price}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += " each";
@@ -311,7 +311,8 @@ export class Plugin extends AbstractPlugin {
     if (shopHasInsufficientAmount) {
       amount = itemAndPrototype.item.stackSize;
     }
-    const individualBuyPrice = this.calculatePrice(chat, itemAndPrototype.prototype.buyPrice);
+    const individualBuyPrice = this.calculatePrice(chat, itemAndPrototype.prototype.buyPrice,
+      itemAndPrototype.prototype.staticPrice);
     let buyPrice = amount * individualBuyPrice;
     const playerHasInsufficientFunds = buyPrice > user.score;
 
@@ -374,7 +375,7 @@ export class Plugin extends AbstractPlugin {
     if (playerHasInsufficientAmount) {
       amount = itemAndPrototype.item.stackSize;
     }
-    let sellPrice = amount * this.calculatePrice(chat, itemAndPrototype.prototype.sellPrice);
+    let sellPrice = amount * this.calculatePrice(chat, itemAndPrototype.prototype.sellPrice, itemAndPrototype.prototype.staticPrice);
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
     chatItemsData.moveToInventory(inventory, itemAndPrototype.item, amount, chatItemsData.shopInventory);
@@ -453,7 +454,10 @@ export class Plugin extends AbstractPlugin {
     });
   }
 
-  private calculatePrice(chat: Chat, price: number): number {
+  private calculatePrice(chat: Chat, price: number, staticPrice: boolean): number {
+    if (staticPrice) {
+      return price;
+    }
     const multiplier = chat.getSetting<number>(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING);
     return Math.ceil(price * multiplier);
   }
@@ -465,7 +469,10 @@ export class Plugin extends AbstractPlugin {
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {
-    this.chatsItemsData.forEach((data) => this.itemPacks.forEach((pack) => pack.OnNightlyUpdate(data)));
+    this.chatsItemsData.forEach((data) => {
+      data.clearShop();
+      this.itemPacks.forEach((pack) => pack.OnNightlyUpdate(data));
+    });
   }
 
   private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {

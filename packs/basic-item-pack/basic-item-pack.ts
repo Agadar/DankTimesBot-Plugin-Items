@@ -8,7 +8,8 @@ export class BasicItemPack extends AbstractItemPack {
 
     private readonly numberOfCookiesInShop = 10;
 
-    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 40, 38, "🪙", "Limited Edition", ["Miscellaneous"]);
+    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 20000, 19000, "🪙", "Limited Edition", ["Miscellaneous"],
+        false, false, [], true, true);
     private readonly cookieProtoType = new Cookie(1);
     private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 60, 30, "🧠",
         "It's extraordinarily smooth.", ["Miscellaneous"]);
@@ -30,9 +31,6 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const dtbCoins = new Item(this.dtbCoinPrototype.id, 1000);
-        chatItemsData.shopInventory.push(dtbCoins);
-
         const cookies = new Item(this.cookieProtoType.id, this.numberOfCookiesInShop);
         chatItemsData.shopInventory.push(cookies);
     }
@@ -48,9 +46,13 @@ export class BasicItemPack extends AbstractItemPack {
             const freshCookies = new Item(this.cookieProtoType.id, diff);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshCookies);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototypeId === this.developerBrainProtoType.id) && Math.random() > 0.8) {
+        if (!chatItemsData.shopInventory.find((item) => item.prototypeId === this.developerBrainProtoType.id) && Math.random() > 0.9) {
             const freshBrain = new Item(this.developerBrainProtoType.id, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshBrain);
+        }
+        if (!chatItemsData.shopInventory.find((item) => item.prototypeId === this.dtbCoinPrototype.id) && Math.random() > 0.8) {
+            const newCoin = new Item(this.dtbCoinPrototype.id, 1);
+            chatItemsData.addToInventory(chatItemsData.shopInventory, newCoin);
         }
      }
 }

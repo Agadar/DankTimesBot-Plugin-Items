@@ -23,19 +23,6 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const prototypes = this.itemProtoTypes();
-
-        // Remove existing equipment in shop
-        for (let i = 0; i < chatItemsData.shopInventory.length; i++) {
-            const item = chatItemsData.shopInventory[i];
-
-            if (prototypes.find((prototype) => prototype.id === item.prototypeId)) {
-                chatItemsData.shopInventory.splice(i, 1);
-                i--;
-            }
-        }
-
-        // Add equipment to shop, one of each type and one random extra
         this.addRandomEquipmentOfType(this.rpgPrototypes.oneHandedItemProtoTypes, chatItemsData);
         this.addRandomEquipmentOfType(this.rpgPrototypes.twoHandedItemProtoTypes, chatItemsData);
         this.addRandomEquipmentOfType(this.rpgPrototypes.offHandItemProtoTypes, chatItemsData);

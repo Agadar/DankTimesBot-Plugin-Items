@@ -35,4 +35,8 @@ export class ChatItemsData {
             item.stackSize -= amount;
         }
     }
+
+    public clearShop(): void {
+        this.shopInventory.splice(0, this.shopInventory.length);
+    }
 }
