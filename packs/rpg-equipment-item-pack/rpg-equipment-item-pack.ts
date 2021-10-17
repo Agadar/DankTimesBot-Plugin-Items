@@ -36,9 +36,15 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
      */
     public OnHourlyTick(chatItemsData: ChatItemsData): void {
         const prototypeIds = this.itemProtoTypes().map(prototype => prototype.id);
-        if (chatItemsData.shopInventory.filter(item => prototypeIds.includes(item.prototypeId)).length < 4) {
-            this.addRandomEquipment(chatItemsData);
+        const equipmentInShop = chatItemsData.shopInventory.filter(item => prototypeIds.includes(item.prototype.id));
+
+        if (equipmentInShop.length > 5) {
+            const randomIndex = Math.floor(Math.random() * equipmentInShop.length);
+            const randomItem = equipmentInShop[randomIndex];
+            const indexInShop = chatItemsData.shopInventory.indexOf(randomItem);
+            chatItemsData.shopInventory.splice(indexInShop, 1);
         }
+        this.addRandomEquipment(chatItemsData);
     }
 
     /**
@@ -67,7 +73,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     private addRandomEquipmentOfType(prototypes: ItemProtoType[], chatItemsData: ChatItemsData): void {
         const randomIndex = Math.floor(Math.random() * prototypes.length);
         const prototype = prototypes[randomIndex];
-        const item = new Item(prototype.id, 1);
+        const item = new Item(prototype, 1);
         chatItemsData.addToInventory(chatItemsData.shopInventory, item);
     }
 }

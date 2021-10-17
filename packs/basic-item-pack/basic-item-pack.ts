@@ -31,7 +31,7 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const cookies = new Item(this.cookieProtoType.id, this.numberOfCookiesInShop);
+        const cookies = new Item(this.cookieProtoType, this.numberOfCookiesInShop);
         chatItemsData.shopInventory.push(cookies);
     }
 
@@ -39,19 +39,19 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public OnNightlyUpdate(chatItemsData: ChatItemsData): void {
-        const cookiesCount = chatItemsData.shopInventory.filter((item) => item.prototypeId === this.cookieProtoType.id).length;
+        const cookiesCount = chatItemsData.shopInventory.filter((item) => item.prototype === this.cookieProtoType).length;
         const diff = this.numberOfCookiesInShop - cookiesCount;
 
         if (diff > 0) {
-            const freshCookies = new Item(this.cookieProtoType.id, diff);
+            const freshCookies = new Item(this.cookieProtoType, diff);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshCookies);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototypeId === this.developerBrainProtoType.id) && Math.random() > 0.9) {
-            const freshBrain = new Item(this.developerBrainProtoType.id, 1);
+        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.developerBrainProtoType) && Math.random() > 0.9) {
+            const freshBrain = new Item(this.developerBrainProtoType, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshBrain);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototypeId === this.dtbCoinPrototype.id) && Math.random() > 0.8) {
-            const newCoin = new Item(this.dtbCoinPrototype.id, 1);
+        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.dtbCoinPrototype) && Math.random() > 0.8) {
+            const newCoin = new Item(this.dtbCoinPrototype, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, newCoin);
         }
      }

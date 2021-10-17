@@ -2,6 +2,7 @@ import { ChatEquipmentManager } from "./chat/chat-equipment-manager";
 import { ChatInventoryManager } from "./chat/chat-inventory-manager";
 import { ChatItemsData } from "./chat/chat-items-data";
 import { Item } from "./item/item";
+import { PlaceholderItemPrototype } from "./item/placeholder-item-prototype";
 
 export class FileIOHelper {
 
@@ -22,7 +23,7 @@ export class FileIOHelper {
                 const shopInventory = this.parseRawItems(raw.shopInventory);
                 const inventoryManager = this.parseRawInventoryManager(raw.inventoryManager);
                 const equipmentManager = this.parseRawEquipmentManager(raw.equipmentManager);
-                const data = new ChatItemsData(raw.chatId, inventoryManager, equipmentManager, shopInventory, raw.scoreMedian);
+                const data = new ChatItemsData(raw.chatId, inventoryManager, equipmentManager, shopInventory);
                 chatsItemsData.set(data.chatId, data);
             });
         }
@@ -34,7 +35,10 @@ export class FileIOHelper {
     }
 
     private parseRawItems(rawItems?: any): Item[] {
-        return rawItems?.map((raw) => new Item(raw.prototypeId, raw.stackSize)) ?? [];
+        return rawItems?.map((raw) => {
+            const prototype = new PlaceholderItemPrototype(raw.prototypeId);
+            return new Item(prototype, raw.stackSize);
+        }) ?? [];
     }
 
     private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {

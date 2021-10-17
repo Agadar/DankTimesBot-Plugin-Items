@@ -2,7 +2,7 @@ import { PreUserScoreChangedEventArguments } from "../../../../src/plugin-host/p
 import { EquipmentSlot } from "../../item/equipment-slot";
 import { ItemProtoType } from "../../item/item-prototype";
 
-export class RpgEquipment extends ItemProtoType {
+export class UserScoreChangeEquipment extends ItemProtoType {
 
     public static readonly ANY = "*";
 
@@ -16,15 +16,15 @@ export class RpgEquipment extends ItemProtoType {
         tags: string[],
         equipmentSlots: EquipmentSlot[],
         private readonly nameOfOriginPlugin: string,
-        private readonly scoreChangeReason: string,
+        private readonly scoreChangeReasons: string[],
         private readonly modifier: number,
     ) {
         super(id, name, buyPriceRatioToMedian, sellPriceRatioToMedian, icon, description, tags, false, false, equipmentSlots);
     }
 
     public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
-        if ((this.nameOfOriginPlugin === RpgEquipment.ANY || event.nameOfOriginPlugin === this.nameOfOriginPlugin) &&
-            (this.scoreChangeReason === RpgEquipment.ANY || event.reason === this.scoreChangeReason)) {
+        if ((this.nameOfOriginPlugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === this.nameOfOriginPlugin) &&
+            (this.scoreChangeReasons.includes(UserScoreChangeEquipment.ANY) || this.scoreChangeReasons.includes(event.reason))) {
             event.changeInScore *= this.modifier;
         }
     }

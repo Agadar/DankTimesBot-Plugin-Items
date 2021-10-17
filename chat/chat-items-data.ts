@@ -1,4 +1,5 @@
 import { Item } from "../item/item";
+import { ItemProtoType } from "../item/item-prototype";
 import { ChatEquipmentManager } from "./chat-equipment-manager";
 import { ChatInventoryManager } from "./chat-inventory-manager";
 
@@ -12,18 +13,19 @@ export class ChatItemsData {
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {
         this.removeFromInventory(from, item, amount);
-        const itemToAdd = new Item(item.prototypeId, amount);
+        const itemToAdd = new Item(item.prototype, amount);
         this.addToInventory(to, itemToAdd);
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find((toFind) => toFind.prototypeId === item.prototypeId);
+        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype);
 
         if (itemInTargetInventory) {
             itemInTargetInventory.stackSize += item.stackSize;
 
         } else {
             to.push(item);
+            to.sort(Item.compare);
         }
     }
 
@@ -38,5 +40,18 @@ export class ChatItemsData {
 
     public clearShop(): void {
         this.shopInventory.splice(0, this.shopInventory.length);
+    }
+
+    public updatePrototypes(prototypes: ItemProtoType[]): void {
+        this.shopInventory.forEach((item) => {
+            const newPrototype = prototypes.find(prototype => prototype.id === item.prototype.id);
+
+            if (newPrototype) {
+                item.prototype = newPrototype;
+            }
+        });
+        this.shopInventory.sort(Item.compare);
+        this.inventoryManager.updatePrototypes(prototypes);
+        this.equipmentManager.updatePrototypes(prototypes);
     }
 }

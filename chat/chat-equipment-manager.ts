@@ -1,5 +1,6 @@
 import { User } from "../../../src/chat/user/user";
 import { Item } from "../item/item";
+import { ItemProtoType } from "../item/item-prototype";
 
 export class ChatEquipmentManager {
 
@@ -16,5 +17,18 @@ export class ChatEquipmentManager {
 
     public toJSON(): Array<{ userId: number, equipment: Item[] }> {
         return Array.from(this.equipments, ([key, value]) => ({ userId: key, equipment: value }));
+    }
+
+    public updatePrototypes(prototypes: ItemProtoType[]): void {
+        this.equipments.forEach((equipment) => {
+            equipment.forEach((item) => {
+                const newPrototype = prototypes.find(prototype => prototype.id === item.prototype.id);
+
+                if (newPrototype) {
+                    item.prototype = newPrototype;
+                }
+            })
+            equipment.sort(Item.compare);
+        });
     }
 }

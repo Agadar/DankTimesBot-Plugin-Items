@@ -1,7 +1,7 @@
 import { EquipmentSlot } from "../../item/equipment-slot";
 import { ItemProtoType } from "../../item/item-prototype";
 import { ItemEffect } from "../rpg-equipment-item-pack/item-effect"
-import { RpgEquipment } from "./rpg-equipment";
+import { UserScoreChangeEquipment } from "./user-score-change-equipment";
 import { ItemAesthetics } from "./item-aesthetics";
 
 export class RpgPrototypes {
@@ -67,8 +67,8 @@ export class RpgPrototypes {
 
         const name = `${itemAesthetics.name} of the ${effect.name}`;
 
-        const weapon = new RpgEquipment(id, name, buyPriceMod, sellPriceMod, itemAesthetics.icon, description,
-            tags, slots, effect.plugin, effect.reason, effectModifier);
+        const weapon = new UserScoreChangeEquipment(id, name, buyPriceMod, sellPriceMod, itemAesthetics.icon, description,
+            tags, slots, effect.plugin, effect.reasons, effectModifier);
         return weapon;
     }
 }

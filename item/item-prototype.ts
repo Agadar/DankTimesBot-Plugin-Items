@@ -26,6 +26,35 @@ export class ItemProtoType {
     ) {
     }
 
+    /**
+     * Comparison method for sorting arrays. Sorts by equipment slots, then by name.
+     */
+    public static compare(a: ItemProtoType, b: ItemProtoType): number {
+        if (a.equipmentSlots.length === 0 && b.equipmentSlots.length > 0) {
+            return 1;
+        }
+        if (a.equipmentSlots.length > 0 && b.equipmentSlots.length === 0) {
+            return -1;
+        }
+
+        for (let i = 0; i < Math.min(a.equipmentSlots.length, b.equipmentSlots.length); i++) {
+            if (a.equipmentSlots[i] > b.equipmentSlots[i]) {
+                return 1;
+            }
+            if (a.equipmentSlots[i] < b.equipmentSlots[i]) {
+                return -1;
+            }
+        }
+        
+        if (a.name > b.name) {
+            return 1;
+        }
+        if (a.name < b.name) {
+            return -1;
+        }
+        return 0;
+    }
+
     public prettyName(): string {
         let prettified = "";
         if (this.icon) {
