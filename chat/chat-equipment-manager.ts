@@ -1,6 +1,7 @@
 import { User } from "../../../src/chat/user/user";
 import { Item } from "../item/item";
 import { ItemProtoType } from "../item/item-prototype";
+import { PlaceholderItemPrototype } from "../item/placeholder-item-prototype";
 
 export class ChatEquipmentManager {
 
@@ -26,9 +27,18 @@ export class ChatEquipmentManager {
 
                 if (newPrototype) {
                     item.prototype = newPrototype;
+
+                    if (item.name === PlaceholderItemPrototype.PLACEHOLDER_NAME) {
+                        item.name = newPrototype.defaultName;
+                    }
                 }
             })
             equipment.sort(Item.compare);
         });
+    }
+
+    public findItems(itemName: string): Item[] {
+        const items = (new Array<Item>()).concat(...Array.from(this.equipments.values()));
+        return items.filter(item => item.name.toLocaleLowerCase() === itemName.toLocaleLowerCase());
     }
 }
