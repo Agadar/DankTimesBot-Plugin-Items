@@ -12,7 +12,7 @@ export class ItemProtoType {
 
     constructor(
         public readonly id: number,
-        public readonly defaultName: string,
+        public readonly name: string,
         public readonly buyPrice = 0,
         public readonly sellPrice = 0,
         public readonly icon?: string,
@@ -22,13 +22,50 @@ export class ItemProtoType {
         public readonly consumedOnUse = false,
         public readonly equipmentSlots: EquipmentSlot[] = [],
         public readonly tradeable = true,
-        public readonly staticPrice = false,
-        public readonly maxRank = 0,
+        public readonly staticPrice = false
     ) {
     }
 
-    public prettyPrint(name = this.defaultName, rank = 0): string {
-        let prettified = `${this.prettyName(name)}`;
+    /**
+     * Comparison method for sorting arrays. Sorts by equipment slots, then by name.
+     */
+    public static compare(a: ItemProtoType, b: ItemProtoType): number {
+        if (a.equipmentSlots.length === 0 && b.equipmentSlots.length > 0) {
+            return 1;
+        }
+        if (a.equipmentSlots.length > 0 && b.equipmentSlots.length === 0) {
+            return -1;
+        }
+
+        for (let i = 0; i < Math.min(a.equipmentSlots.length, b.equipmentSlots.length); i++) {
+            if (a.equipmentSlots[i] > b.equipmentSlots[i]) {
+                return 1;
+            }
+            if (a.equipmentSlots[i] < b.equipmentSlots[i]) {
+                return -1;
+            }
+        }
+        
+        if (a.name > b.name) {
+            return 1;
+        }
+        if (a.name < b.name) {
+            return -1;
+        }
+        return 0;
+    }
+
+    public prettyName(): string {
+        let prettified = "";
+        if (this.icon) {
+            prettified += `${this.icon} `;
+        }
+        prettified += `<b>${this.name}</b>`;
+        return prettified;
+    }
+
+    public prettyPrint(): string {
+        let prettified = `${this.prettyName()}`;
         const tags = this.tags.slice();
 
         if (this.usable) {
@@ -44,9 +81,6 @@ export class ItemProtoType {
         if (!this.tradeable) {
             tags.push("Cannot be traded");
         }
-        if (rank > 0) {
-            tags.push(`Upgraded (${rank})`);
-        }
         if (tags.length > 0) {
             prettified += `\n<i>${tags.join(", ")}</i>`;
         }
@@ -56,21 +90,11 @@ export class ItemProtoType {
         return prettified;
     }
 
-    public prettyName(name = this.defaultName): string {
-        let prettified = "";
-        if (this.icon) {
-            prettified += `${this.icon} `;
-        }
-        prettified += `<b>${name}</b>`;
-        return prettified;
+    public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {
+        return { msg: `You shake ${this.prettyName()} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
     }
 
-
-    public onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, name: string): { msg: string, shouldConsume: boolean } {
-        return { msg: `You shake ${name} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
-    }
-
-    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number, name: string): void {
+    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
         // No behavior by default.
     }
 }

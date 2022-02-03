@@ -37,9 +37,7 @@ export class FileIOHelper {
     private parseRawItems(rawItems?: any): Item[] {
         return rawItems?.map((raw) => {
             const prototype = new PlaceholderItemPrototype(raw.prototypeId);
-            let name: string = raw.name ?? prototype.defaultName;
-            let rank: number = isNaN(raw.rank) ? 0 : raw.rank;
-            return new Item(prototype, raw.stackSize, name, rank);
+            return new Item(prototype, raw.stackSize);
         }) ?? [];
     }
 

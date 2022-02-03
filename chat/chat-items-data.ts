@@ -1,6 +1,5 @@
 import { Item } from "../item/item";
 import { ItemProtoType } from "../item/item-prototype";
-import { PlaceholderItemPrototype } from "../item/placeholder-item-prototype";
 import { ChatEquipmentManager } from "./chat-equipment-manager";
 import { ChatInventoryManager } from "./chat-inventory-manager";
 
@@ -14,12 +13,12 @@ export class ChatItemsData {
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {
         this.removeFromInventory(from, item, amount);
-        const itemToAdd = new Item(item.prototype, amount, item.name, item.rank);
+        const itemToAdd = new Item(item.prototype, amount);
         this.addToInventory(to, itemToAdd);
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype && toFind.name === item.name && toFind.rank === item.rank);
+        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype);
 
         if (itemInTargetInventory) {
             itemInTargetInventory.stackSize += item.stackSize;
@@ -49,21 +48,10 @@ export class ChatItemsData {
 
             if (newPrototype) {
                 item.prototype = newPrototype;
-
-                if (item.name === PlaceholderItemPrototype.PLACEHOLDER_NAME) {
-                    item.name = newPrototype.defaultName;
-                }
             }
         });
         this.shopInventory.sort(Item.compare);
         this.inventoryManager.updatePrototypes(prototypes);
         this.equipmentManager.updatePrototypes(prototypes);
-    }
-
-    public findItems(itemName: string): Item[] {
-        let items = this.inventoryManager.findItems(itemName);
-        items = items.concat(this.equipmentManager.findItems(itemName));
-        items = items.concat(this.shopInventory.filter(item => item.name.toLocaleLowerCase() === itemName.toLocaleLowerCase()));
-        return items;
     }
 }

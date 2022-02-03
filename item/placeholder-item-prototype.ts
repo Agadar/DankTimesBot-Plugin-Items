@@ -7,10 +7,8 @@ import { ItemProtoType } from "./item-prototype";
  */
 export class PlaceholderItemPrototype extends ItemProtoType {
 
-    public static readonly PLACEHOLDER_NAME = "Mysterious Object";
-
     constructor(id: number) {
-        super(id, PlaceholderItemPrototype.PLACEHOLDER_NAME, 0, 0, "❓", "A riddle wrapped in a mystery inside an enigma",
+        super(id, "Mysterious Object", 0, 0, "❓", "A riddle wrapped in a mystery inside an enigma",
             ["Placeholder"], false, false, [], false, false);
     }
 }
