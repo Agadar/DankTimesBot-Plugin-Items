@@ -73,7 +73,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     private addRandomEquipmentOfType(prototypes: ItemProtoType[], chatItemsData: ChatItemsData): void {
         const randomIndex = Math.floor(Math.random() * prototypes.length);
         const prototype = prototypes[randomIndex];
-        const item = new Item(prototype, 1);
+        const item = new Item(prototype, 1, 1);
         chatItemsData.addToInventory(chatItemsData.shopInventory, item);
     }
 }

@@ -30,10 +30,12 @@ export class Plugin extends AbstractPlugin {
   private static readonly SHOP_CMD = "shop";
   private static readonly BUY_CMD = "buy";
   private static readonly SELL_CMD = "sell";
+  private static readonly UPGRADE_CMD = "upgrade";
 
   // User score change reasons
   private static readonly BUY_REASON = "buy.item";
   private static readonly SELL_REASON = "sell.item";
+  private static readonly UPGRADE_REASON = "upgrade.item";
 
   // Events this plugin listens to
   private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
@@ -72,7 +74,8 @@ export class Plugin extends AbstractPlugin {
     const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
     const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
     const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
-    return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd];
+    const upgradeCmd = new BotCommand([Plugin.UPGRADE_CMD], "", this.upgrade.bind(this), false);
+    return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd];
   }
 
   /**
@@ -84,7 +87,7 @@ export class Plugin extends AbstractPlugin {
       original => {
         const asNumber = Number(original);
         if (isNaN(asNumber)) {
-            throw new RangeError("The value must be a number!");
+          throw new RangeError("The value must be a number!");
         }
         return asNumber;
       },
@@ -93,7 +96,7 @@ export class Plugin extends AbstractPlugin {
           throw new RangeError("The value must be greater than 0!");
         }
       });
-      return [priceMultiplierSetting];
+    return [priceMultiplierSetting];
   }
 
   /**
@@ -109,7 +112,8 @@ export class Plugin extends AbstractPlugin {
       + `/${Plugin.USE_CMD} to use an item\n\n`
       + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
       + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
-      + `/${Plugin.SELL_CMD} to sell an item to the shop`;
+      + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
+      + `/${Plugin.UPGRADE_CMD} to upgrade an item`;
   }
 
   /**
@@ -125,12 +129,12 @@ export class Plugin extends AbstractPlugin {
 
     let inventoryStr = "Your inventory contains the following items:\n";
     inventory.forEach((item) => {
-      inventoryStr += `\n${item.prototype.prettyName()}`;
+      inventoryStr += `\n${item.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
       if (item.prototype.tradeable) {
-        const price = this.calculatePrice(chat, item.prototype.sellPrice, item.prototype.staticPrice);
+        const price = item.getSellPrice(this.getChatModifier(chat));
         inventoryStr += ` worth <i>${price}</i> points`;
         if (item.stackSize > 1) {
           inventoryStr += " each";
@@ -153,9 +157,9 @@ export class Plugin extends AbstractPlugin {
 
     let equipmentStr = "You have the following items equipped:\n";
     equipment.forEach((item) => {
-      equipmentStr += `\n${item.prototype.prettyName()}`;
+      equipmentStr += `\n${item.prettyName()}`;
       if (item.prototype.tradeable) {
-        const price = this.calculatePrice(chat, item.prototype.sellPrice, item.prototype.staticPrice);
+        const price = item.getSellPrice(this.getChatModifier(chat));
         equipmentStr += ` worth <i>${price}</i> points`;
       }
     });
@@ -169,14 +173,17 @@ export class Plugin extends AbstractPlugin {
     if (!match) {
       return "😞 You have to tell me what you want to identify.";
     }
+    const chatModifier = this.getChatModifier(chat);
+    const prettyPrints = Array.from(this.itemProtoTypes.values())
+      .flatMap(prototype => prototype.allNames()
+        .filter(nameAndRank => nameAndRank.name.toLowerCase() === match.toLowerCase())
+        .map(nameAndRank => prototype.prettyPrint(chatModifier, nameAndRank.rank))
+      );
 
-    const protoTypes = Array.from(this.itemProtoTypes.values())
-      .filter((protoType) => protoType.name.toLowerCase() === match.toLowerCase());
-
-    if (protoTypes.length < 1) {
+    if (prettyPrints.length < 1) {
       return "🤷 That item does not exist.";
     }
-    return protoTypes.map((protoType) => protoType.prettyPrint()).join("\n\n");
+    return prettyPrints.join("\n\n");
   }
 
   /**
@@ -194,17 +201,17 @@ export class Plugin extends AbstractPlugin {
       return "😞 You don't have that item.";
     }
     if (itemAndPrototype.prototype.equipmentSlots.length == 0) {
-      return `You put ${itemAndPrototype.prototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
+      return `You put ${itemAndPrototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
     }
     const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
     const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, itemAndPrototype.prototype);
-    let equippedText = `Equipped ${itemAndPrototype.prototype.prettyName()}!`;
+    let equippedText = `Equipped ${itemAndPrototype.prettyName()}!`;
 
     if (itemsOccupyingDesiredSlots.length > 0) {
       equippedText += "\n";
       itemsOccupyingDesiredSlots.forEach(itemOccupyingDesiredSlot => {
         chatItemsData.moveToInventory(equipment, itemOccupyingDesiredSlot, 1, inventory);
-        equippedText += `\nUnequipped ${itemOccupyingDesiredSlot.prototype.prettyName()}!`;
+        equippedText += `\nUnequipped ${itemOccupyingDesiredSlot.prettyName()}!`;
       });
     }
     chatItemsData.moveToInventory(inventory, itemAndPrototype, 1, equipment);
@@ -227,7 +234,7 @@ export class Plugin extends AbstractPlugin {
     }
     const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
     chatItemsData.moveToInventory(equipment, itemAndPrototype, 1, inventory);
-    return `Unequipped ${itemAndPrototype.prototype.prettyName()}!`;
+    return `Unequipped ${itemAndPrototype.prettyName()}!`;
   }
 
   /**
@@ -245,9 +252,9 @@ export class Plugin extends AbstractPlugin {
       return "😞 You don't have that item.";
     }
     if (!itemAndPrototype.prototype.usable) {
-      return `You shake ${itemAndPrototype.prototype.prettyName()} around for a bit and give it a lick. Nothing happens.`;
+      return `You shake ${itemAndPrototype.prettyName()} around for a bit and give it a lick. Nothing happens.`;
     }
-    const useResult = itemAndPrototype.prototype.onUse(chat, user, msg, match);
+    const useResult = itemAndPrototype.onUse(chat, user, msg, match);
 
     if (itemAndPrototype.prototype.consumedOnUse && useResult.shouldConsume) {
       chatItemsData.removeFromInventory(inventory, itemAndPrototype, 1);
@@ -265,12 +272,12 @@ export class Plugin extends AbstractPlugin {
       return "🛒 The shop is all out of stock.";
     }
     let inventoryStr = "The shop has the following item(s) for sale:\n";
-    chatItemsData.shopInventory.forEach((item) => {;
-      inventoryStr += `\n${item.prototype.prettyName()}`;
+    chatItemsData.shopInventory.forEach((item) => {
+      inventoryStr += `\n${item.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
-      const price = this.calculatePrice(chat, item.prototype.buyPrice, item.prototype.staticPrice);
+      const price = item.getBuyPrice(this.getChatModifier(chat));
       inventoryStr += ` for <i>${price}</i> points`;
       if (item.stackSize > 1) {
         inventoryStr += " each";
@@ -306,8 +313,7 @@ export class Plugin extends AbstractPlugin {
     if (shopHasInsufficientAmount) {
       amount = itemAndPrototype.stackSize;
     }
-    const individualBuyPrice = this.calculatePrice(chat, itemAndPrototype.prototype.buyPrice,
-      itemAndPrototype.prototype.staticPrice);
+    const individualBuyPrice = itemAndPrototype.getBuyPrice(this.getChatModifier(chat));
     let buyPrice = amount * individualBuyPrice;
     const playerHasInsufficientFunds = buyPrice > user.score;
 
@@ -326,18 +332,18 @@ export class Plugin extends AbstractPlugin {
     let successMsg: string;
 
     if (playerHasInsufficientFunds) {
-      successMsg = `You did not have enough points for ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `You did not have enough points for ${itemAndPrototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${itemAndPrototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (shopHasInsufficientAmount) {
-      successMsg = `The shop did not have ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `The shop did not have ${itemAndPrototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead bought ${itemAndPrototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Bought ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${itemAndPrototype.prettyName()} (<i>${amount}</i>) for <i>${-buyPrice}</i> points!`;
 
     } else {
-      successMsg = `Bought ${itemAndPrototype.prototype.prettyName()} for <i>${-buyPrice}</i> points!`;
+      successMsg = `Bought ${itemAndPrototype.prettyName()} for <i>${-buyPrice}</i> points!`;
     }
     return successMsg;
   }
@@ -370,23 +376,63 @@ export class Plugin extends AbstractPlugin {
     if (playerHasInsufficientAmount) {
       amount = itemAndPrototype.stackSize;
     }
-    let sellPrice = amount * this.calculatePrice(chat, itemAndPrototype.prototype.sellPrice, itemAndPrototype.prototype.staticPrice);
+    let sellPrice = amount * itemAndPrototype.getSellPrice(this.getChatModifier(chat));
     const alterScoreArgs = new AlterUserScoreArgs(user, sellPrice, this.name, Plugin.SELL_REASON);
     sellPrice = chat.alterUserScore(alterScoreArgs);
     chatItemsData.moveToInventory(inventory, itemAndPrototype, amount, chatItemsData.shopInventory);
     let successMsg: string;
 
     if (playerHasInsufficientAmount) {
-      successMsg = `You did not have ${itemAndPrototype.prototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
-      successMsg += `Instead sold ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `You did not have ${itemAndPrototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+      successMsg += `Instead sold ${itemAndPrototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else if (amount > 1) {
-      successMsg = `Sold ${itemAndPrototype.prototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${itemAndPrototype.prettyName()} (<i>${amount}</i>) for <i>${sellPrice}</i> points!`;
 
     } else {
-      successMsg = `Sold ${itemAndPrototype.prototype.prettyName()} for <i>${sellPrice}</i> points!`;
+      successMsg = `Sold ${itemAndPrototype.prettyName()} for <i>${sellPrice}</i> points!`;
     }
     return successMsg;
+  }
+
+  /**
+   * upgrade command
+   */
+  private upgrade(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+    if (!match) {
+      return "😞 You have to specify what you want to upgrade.";
+    }
+    const chatItemsData = this.getOrCreateChatItemsData(chat);
+    let inventory = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+    let itemToUpgrade = this.findItemInInventory(inventory, match);
+
+    if (!itemToUpgrade) {
+      inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+      itemToUpgrade = this.findItemInInventory(inventory, match);
+
+      if (!itemToUpgrade) {
+        return "😞 You don't have that item.";
+      }
+    }
+    if (itemToUpgrade.prototype.maxRank < 2) {
+      return "😞 This item cannot be upgraded.";
+    }
+    if (itemToUpgrade.rank >= itemToUpgrade.prototype.maxRank) {
+      return "😞 This item cannot be upgraded further.";
+    }
+    let upgradePrice = itemToUpgrade.getUpgradePrice(this.getChatModifier(chat));
+
+    if (upgradePrice > user.score) {
+      return "😞 You can't afford to upgrade this item.";
+    }
+    const alterScoreArgs = new AlterUserScoreArgs(user, -upgradePrice, this.name, Plugin.UPGRADE_REASON);
+    upgradePrice = chat.alterUserScore(alterScoreArgs);
+
+    const upgradedItem = new Item(itemToUpgrade.prototype, 1, itemToUpgrade.rank + 1);
+    chatItemsData.removeFromInventory(inventory, itemToUpgrade, 1);
+    chatItemsData.addToInventory(inventory, upgradedItem);
+
+    return `Upgraded ${itemToUpgrade.prettyName()} to ${upgradedItem.prettyName()} for <i>${-upgradePrice}</i> points!`;
   }
 
   private getOrCreateChatItemsData(chat: Chat): ChatItemsData {
@@ -424,7 +470,7 @@ export class Plugin extends AbstractPlugin {
   }
 
   private findItemInInventory(inventory: Item[], match: string): Item | null {
-    return inventory.find((item) => item.prototype.name.toLowerCase() === match.toLowerCase());
+    return inventory.find((item) => item.name.toLowerCase() === match.toLowerCase());
   }
 
   private itemsOccupyingDesiredSlots(equipment: Item[], itemPrototype: ItemProtoType): Item[] {
@@ -433,12 +479,8 @@ export class Plugin extends AbstractPlugin {
     });
   }
 
-  private calculatePrice(chat: Chat, price: number, staticPrice: boolean): number {
-    if (staticPrice) {
-      return price;
-    }
-    const multiplier = chat.getSetting<number>(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING);
-    return Math.ceil(price * multiplier);
+  private getChatModifier(chat: Chat): number {
+    return chat.getSetting<number>(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING) ?? 1;
   }
 
   private onBotStartup(eventArgs: EmptyEventArguments): void {
@@ -457,7 +499,7 @@ export class Plugin extends AbstractPlugin {
   private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
     const equipment = this.getOrCreateChatItemsData(event.chat).equipmentManager.getOrCreateEquipment(event.user);
     equipment.forEach((item) => {
-      item.prototype.onPreUserScoreChange(event);
+      item.onPreUserScoreChange(event);
     });
   }
 

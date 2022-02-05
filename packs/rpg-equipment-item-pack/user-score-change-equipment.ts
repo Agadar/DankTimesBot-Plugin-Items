@@ -9,8 +9,8 @@ export class UserScoreChangeEquipment extends ItemProtoType {
     constructor(
         id: number,
         name: string,
-        buyPriceRatioToMedian: number,
-        sellPriceRatioToMedian: number,
+        buyPrice: number,
+        sellPriceRatioToBuyPrice: number,
         icon: string,
         description: string,
         tags: string[],
@@ -18,14 +18,26 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         private readonly nameOfOriginPlugin: string,
         private readonly scoreChangeReasons: string[],
         private readonly modifier: number,
+        maxRank: number
     ) {
-        super(id, name, buyPriceRatioToMedian, sellPriceRatioToMedian, icon, description, tags, false, false, equipmentSlots);
+        super(id, name, buyPrice, sellPriceRatioToBuyPrice, icon, description, tags, false, false, equipmentSlots,
+            true, false, maxRank);
     }
 
-    public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
+    public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number): void {
         if ((this.nameOfOriginPlugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === this.nameOfOriginPlugin) &&
             (this.scoreChangeReasons.includes(UserScoreChangeEquipment.ANY) || this.scoreChangeReasons.includes(event.reason))) {
-            event.changeInScore *= this.modifier;
+            event.changeInScore *= (1 + this.baseModifierForRank(rank));
         }
+    }
+
+    public override getDescription(rank = 1): string {
+        const baseModifierForRank = this.baseModifierForRank(rank);
+        const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
+        return `${this.description} ${modifierAsPercentage}%`;
+    }
+
+    private baseModifierForRank(rank: number): number {
+        return this.modifier + this.modifier * 0.5 * (rank - 1);
     }
 }

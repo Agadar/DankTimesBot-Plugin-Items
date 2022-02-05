@@ -1,3 +1,4 @@
+import { Console } from "console";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
@@ -12,17 +13,18 @@ export class ItemProtoType {
 
     constructor(
         public readonly id: number,
-        public readonly name: string,
-        public readonly buyPrice = 0,
-        public readonly sellPrice = 0,
+        private readonly name: string,
+        protected readonly buyPrice = 0,
+        protected readonly sellPriceRatioToBuyPrice = 0.5,
         public readonly icon?: string,
-        public readonly description = "This item is indescribable",
+        protected readonly description = "This item is indescribable",
         public readonly tags: string[] = [],
         public readonly usable = false,
         public readonly consumedOnUse = false,
         public readonly equipmentSlots: EquipmentSlot[] = [],
         public readonly tradeable = true,
-        public readonly staticPrice = false
+        protected readonly staticPrice = false,
+        public readonly maxRank = 1
     ) {
     }
 
@@ -45,7 +47,7 @@ export class ItemProtoType {
                 return -1;
             }
         }
-        
+
         if (a.name > b.name) {
             return 1;
         }
@@ -55,17 +57,48 @@ export class ItemProtoType {
         return 0;
     }
 
-    public prettyName(): string {
+    /**
+     * Gets all possible names and ranks for this item prototype.
+     */
+    public allNames(): { name: string, rank: number }[] {
+        const allNames = new Array<{ name: string, rank: number }>();
+        allNames.push({ name: this.name, rank: 1 });
+        for (let rank = 1; rank <= this.maxRank; rank++) {
+            allNames.push({ name: `${this.name} ${ItemProtoType.toRoman(rank)}`, rank: rank });
+        }
+        return allNames;
+    }
+
+    /**
+     * Gets the name for the specified rank, e.g. 'Scroll of Ingenuity II'.
+     */
+    public nameForRank(rank: number = 1): string {
+        if (rank == 1) {
+            return this.name;
+        }
+        return `${this.name} ${ItemProtoType.toRoman(rank)}`;
+    }
+
+    /**
+     * Pretty prints the name for the specified rank including font style and emoji.
+     */
+    public prettyName(rank: number): string {
         let prettified = "";
         if (this.icon) {
             prettified += `${this.icon} `;
         }
-        prettified += `<b>${this.name}</b>`;
-        return prettified;
+        prettified += `<b>${this.name}`;
+        if (rank > 1) {
+            prettified += ` ${ItemProtoType.toRoman(rank)}`;
+        }
+        return prettified + '</b>';
     }
 
-    public prettyPrint(): string {
-        let prettified = `${this.prettyName()}`;
+    /**
+     * Pretty prints the name, tags, description etc. for the specified rank.
+     */
+    public prettyPrint(modifier: number, rank: number): string {
+        let prettified = `${this.prettyName(rank)}`;
         const tags = this.tags.slice();
 
         if (this.usable) {
@@ -79,22 +112,102 @@ export class ItemProtoType {
             tags.push("Equippable");
         }
         if (!this.tradeable) {
-            tags.push("Cannot be traded");
+            tags.push("Untradeable");
+        }
+        if (this.maxRank > rank) {
+            tags.push("Upgradable");
         }
         if (tags.length > 0) {
             prettified += `\n<i>${tags.join(", ")}</i>`;
         }
-        if (this.description) {
-            prettified += `\n${this.description}`;
+        const description = this.getDescription(rank);
+        
+        if (description) {
+            prettified += `\n\n${description}`;
+        }
+        if (this.tradeable || this.maxRank > rank) {
+            prettified += "\n";
+        }
+        if (this.maxRank > rank) {
+            prettified += `\n<u>Upgrades</u> for ${this.getUpgradePrice(modifier, rank)} points`;
+        }
+        if (this.tradeable) {
+            prettified += `\n<u>Sells</u> for ${this.getSellPrice(modifier, rank)} points`;
         }
         return prettified;
     }
 
-    public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {
-        return { msg: `You shake ${this.prettyName()} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
+    /**
+     * By default just returns the description supplied in the constructor. Override for custom behavior.
+     */
+    public getDescription(rank = 1): string {
+        return this.description;
     }
 
-    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
+    /**
+     * Gets the buy price according to the buy price specified in the constructor and the costs of the required upgrades to reach
+     * the specified rank. Override for custom behavior.
+     */
+    public getBuyPrice(modifier: number, rank: number): number {
+        let totalPrice = this.buyPrice;
+
+        if (!this.staticPrice) {
+            totalPrice *= modifier;
+        }
+        for (let i = 1; i < rank; i++) {
+            totalPrice += this.getUpgradePrice(modifier, i);
+        }
+        return Math.ceil(totalPrice);
+    }
+
+    /**
+     * By default returns the buy price for the rank times the sell price ratio. Override for custom behavior.
+     */
+    public getSellPrice(modifier: number, rank: number): number {
+        return Math.ceil(this.getBuyPrice(modifier, rank) * this.sellPriceRatioToBuyPrice);
+    }
+
+    /**
+     * Gets the upgrade price based on the buy price supplied in the constructor. Override for custom behavior.
+     */
+    public getUpgradePrice(modifier: number, currentRank: number): number {
+        let price = this.buyPrice + this.buyPrice * 0.5;
+        price *= Math.pow(2, currentRank - 1);
+
+        if (!this.staticPrice) {
+            price *= modifier;
+        }
+        return Math.ceil(price);
+    }
+
+    /**
+     * Only prints a message by default. Override for custom behavior.
+     */
+    public onUse(chat: Chat, user: User, msg: Message, match: string, rank: number): { msg: string, shouldConsume: boolean } {
+        return { msg: `You shake ${this.prettyName(rank)} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
+    }
+
+    /**
+     * No behavior by default. Override for custom behavior.
+     */
+    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number): void {
         // No behavior by default.
+    }
+
+    private static toRoman(number: number): string {
+        // From https://www.geeksforgeeks.org/converting-decimal-number-lying-between-1-to-3999-to-roman-numerals/
+        const num = [1, 4, 5, 9, 10, 40, 50, 90, 100, 400, 500, 900, 1000];
+        const sym = ["I", "IV", "V", "IX", "X", "XL", "L", "XC", "C", "CD", "D", "CM", "M"];
+        let result = "";
+        let i = 12;
+        while (number > 0) {
+            let div = Math.floor(number / num[i]);
+            number = number % num[i];
+            while (div--) {
+                result += sym[i];
+            }
+            i--;
+        }
+        return result;
     }
 }

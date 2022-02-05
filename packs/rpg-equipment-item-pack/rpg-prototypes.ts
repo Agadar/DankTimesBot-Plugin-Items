@@ -55,20 +55,15 @@ export class RpgPrototypes {
             .concat(this.ringItemProtoTypes).concat(this.necklaceItemProtoTypes);
     }
 
-    private createWeapon(modifier: number, effect: ItemEffect, itemAesthetics: ItemAesthetics,
+    private createWeapon(itemTypeModifier: number, effect: ItemEffect, itemAesthetics: ItemAesthetics,
         id: number, tags: string[], slots: EquipmentSlot[]) {
 
-        let effectModifier = Math.round(modifier * effect.modifier * 1000) / 10;
-        const description = `${effect.description} ${Math.abs(effectModifier)}%`;
-        effectModifier = (effectModifier / 100) + 1;
-
-        const buyPriceMod = RpgPrototypes.pricemodifier * modifier;
-        const sellPriceMod = buyPriceMod / 2;
-
+        const baseModifier = itemTypeModifier * effect.modifier;
+        const buyPriceMod = RpgPrototypes.pricemodifier * itemTypeModifier;
         const name = `${itemAesthetics.name} of the ${effect.name}`;
 
-        const weapon = new UserScoreChangeEquipment(id, name, buyPriceMod, sellPriceMod, itemAesthetics.icon, description,
-            tags, slots, effect.plugin, effect.reasons, effectModifier);
+        const weapon = new UserScoreChangeEquipment(id, name, buyPriceMod, 0.5, itemAesthetics.icon, effect.description,
+            tags, slots, effect.plugin, effect.reasons, baseModifier, effect.maxRank);
         return weapon;
     }
 }
