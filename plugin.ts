@@ -14,6 +14,7 @@ import { ChatItemsData } from "./chat/chat-items-data";
 import { FileIOHelper } from "./file-io-helper";
 import { Item } from "./item/item";
 import { ItemProtoType } from "./item/item-prototype";
+import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 
@@ -175,10 +176,7 @@ export class Plugin extends AbstractPlugin {
     }
     const chatModifier = this.getChatModifier(chat);
     const prettyPrints = Array.from(this.itemProtoTypes.values())
-      .flatMap(prototype => prototype.allNames()
-        .filter(nameAndRank => nameAndRank.name.toLowerCase() === match.toLowerCase())
-        .map(nameAndRank => prototype.prettyPrint(chatModifier, nameAndRank.rank))
-      );
+      .flatMap(prototype => prototype.getPrettyPrintsOfMatchingNames(match, chatModifier));
 
     if (prettyPrints.length < 1) {
       return "🤷 That item does not exist.";
@@ -487,6 +485,7 @@ export class Plugin extends AbstractPlugin {
     this.chatsItemsData = this.fileIOHelper.loadData();
     this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new BasicItemPack());
     this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RPGEquipmentItemPack());
+    this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new AvatarItemPack());
   }
 
   private onNightlyUpdate(eventArgs: EmptyEventArguments): void {

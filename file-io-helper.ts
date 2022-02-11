@@ -37,7 +37,7 @@ export class FileIOHelper {
     private parseRawItems(rawItems?: any): Item[] {
         return rawItems?.map((raw) => {
             const prototype = new PlaceholderItemPrototype(raw.prototypeId);
-            return new Item(prototype, raw.stackSize, raw.rank ?? 1);
+            return new Item(prototype, raw.stackSize, raw.rank ?? 1, raw.metaData);
         }) ?? [];
     }
 

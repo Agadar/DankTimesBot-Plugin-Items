@@ -1,4 +1,3 @@
-import { Console } from "console";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
@@ -13,7 +12,7 @@ export class ItemProtoType {
 
     constructor(
         public readonly id: number,
-        private readonly name: string,
+        protected readonly name: string,
         protected readonly buyPrice = 0,
         protected readonly sellPriceRatioToBuyPrice = 0.5,
         public readonly icon?: string,
@@ -60,19 +59,21 @@ export class ItemProtoType {
     /**
      * Gets all possible names and ranks for this item prototype.
      */
-    public allNames(): { name: string, rank: number }[] {
+    public getPrettyPrintsOfMatchingNames(input: string, chatModifier: number): string[] {
         const allNames = new Array<{ name: string, rank: number }>();
-        allNames.push({ name: this.name, rank: 1 });
+        allNames.push({ name: `${this.name} ${ItemProtoType.toRoman(1)}`, rank: 1 });
+
         for (let rank = 1; rank <= this.maxRank; rank++) {
-            allNames.push({ name: `${this.name} ${ItemProtoType.toRoman(rank)}`, rank: rank });
+            allNames.push({ name: this.nameForRank(rank), rank: rank });
         }
-        return allNames;
+        return allNames.filter(nameAndRank => nameAndRank.name.toLowerCase() === input.toLowerCase())
+            .map(nameAndRank => this.prettyPrint(chatModifier, nameAndRank.rank));
     }
 
     /**
      * Gets the name for the specified rank, e.g. 'Scroll of Ingenuity II'.
      */
-    public nameForRank(rank: number = 1): string {
+    public nameForRank(rank: number = 1, metaData: any = null): string {
         if (rank == 1) {
             return this.name;
         }
@@ -82,23 +83,19 @@ export class ItemProtoType {
     /**
      * Pretty prints the name for the specified rank including font style and emoji.
      */
-    public prettyName(rank: number): string {
+    public prettyName(rank: number, metaData: any = null): string {
         let prettified = "";
         if (this.icon) {
             prettified += `${this.icon} `;
         }
-        prettified += `<b>${this.name}`;
-        if (rank > 1) {
-            prettified += ` ${ItemProtoType.toRoman(rank)}`;
-        }
-        return prettified + '</b>';
+        return prettified + `<b>${this.nameForRank(rank, metaData)}</b>`;
     }
 
     /**
      * Pretty prints the name, tags, description etc. for the specified rank.
      */
-    public prettyPrint(modifier: number, rank: number): string {
-        let prettified = `${this.prettyName(rank)}`;
+    public prettyPrint(modifier: number, rank: number, metaData: any = null): string {
+        let prettified = `${this.prettyName(rank, metaData)}`;
         const tags = this.tags.slice();
 
         if (this.usable) {
@@ -120,7 +117,7 @@ export class ItemProtoType {
         if (tags.length > 0) {
             prettified += `\n<i>${tags.join(", ")}</i>`;
         }
-        const description = this.getDescription(rank);
+        const description = this.getDescription(rank, metaData);
         
         if (description) {
             prettified += `\n\n${description}`;
@@ -129,10 +126,10 @@ export class ItemProtoType {
             prettified += "\n";
         }
         if (this.maxRank > rank) {
-            prettified += `\n<u>Upgrades</u> for ${this.getUpgradePrice(modifier, rank)} points`;
+            prettified += `\n<u>Upgrades</u> for ${this.getUpgradePrice(modifier, rank, metaData)} points`;
         }
         if (this.tradeable) {
-            prettified += `\n<u>Sells</u> for ${this.getSellPrice(modifier, rank)} points`;
+            prettified += `\n<u>Sells</u> for ${this.getSellPrice(modifier, rank, metaData)} points`;
         }
         return prettified;
     }
@@ -140,7 +137,7 @@ export class ItemProtoType {
     /**
      * By default just returns the description supplied in the constructor. Override for custom behavior.
      */
-    public getDescription(rank = 1): string {
+    public getDescription(rank = 1, metaData: any = null): string {
         return this.description;
     }
 
@@ -148,14 +145,14 @@ export class ItemProtoType {
      * Gets the buy price according to the buy price specified in the constructor and the costs of the required upgrades to reach
      * the specified rank. Override for custom behavior.
      */
-    public getBuyPrice(modifier: number, rank: number): number {
+    public getBuyPrice(modifier: number, rank: number, metaData: any = null): number {
         let totalPrice = this.buyPrice;
 
         if (!this.staticPrice) {
             totalPrice *= modifier;
         }
         for (let i = 1; i < rank; i++) {
-            totalPrice += this.getUpgradePrice(modifier, i);
+            totalPrice += this.getUpgradePrice(modifier, i, metaData);
         }
         return Math.ceil(totalPrice);
     }
@@ -163,14 +160,14 @@ export class ItemProtoType {
     /**
      * By default returns the buy price for the rank times the sell price ratio. Override for custom behavior.
      */
-    public getSellPrice(modifier: number, rank: number): number {
-        return Math.ceil(this.getBuyPrice(modifier, rank) * this.sellPriceRatioToBuyPrice);
+    public getSellPrice(modifier: number, rank: number, metaData: any = null): number {
+        return Math.ceil(this.getBuyPrice(modifier, rank, metaData) * this.sellPriceRatioToBuyPrice);
     }
 
     /**
      * Gets the upgrade price based on the buy price supplied in the constructor. Override for custom behavior.
      */
-    public getUpgradePrice(modifier: number, currentRank: number): number {
+    public getUpgradePrice(modifier: number, currentRank: number, metaData: any = null): number {
         let price = this.buyPrice + this.buyPrice * 0.5;
         price *= Math.pow(2, currentRank - 1);
 
@@ -183,14 +180,14 @@ export class ItemProtoType {
     /**
      * Only prints a message by default. Override for custom behavior.
      */
-    public onUse(chat: Chat, user: User, msg: Message, match: string, rank: number): { msg: string, shouldConsume: boolean } {
+    public onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, metaData: any = null): { msg: string, shouldConsume: boolean } {
         return { msg: `You shake ${this.prettyName(rank)} around for a bit and give it a lick. Nothing happens.`, shouldConsume: false };
     }
 
     /**
      * No behavior by default. Override for custom behavior.
      */
-    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number): void {
+    public onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number, metaData: any = null): void {
         // No behavior by default.
     }
 
