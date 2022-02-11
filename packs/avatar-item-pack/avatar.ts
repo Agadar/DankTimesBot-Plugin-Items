@@ -17,7 +17,7 @@ export class Avatar extends ItemProtoType {
     public override getPrettyPrintsOfMatchingNames(input: string, chatModifier: number): string[] {
         const match = input.match(this.avatarNamePattern);
 
-        if (!match || !match[1] || !emojiList.find(emoji => emoji[1] === match[1])) {
+        if (!match || !match[1] || !emojiList.find(emoji => emoji === match[1])) {
             return [];
         }
         return [this.prettyPrint(chatModifier, 1, match[1])];
