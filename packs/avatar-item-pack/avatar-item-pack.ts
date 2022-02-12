@@ -55,7 +55,7 @@ export class AvatarItemPack extends AbstractItemPack {
 
     private generateRandomAvatar(): Item {
         const randomIndex = Math.floor(Math.random() * emojiList.length);
-        const avatar = emojiList[randomIndex][1];
+        const avatar = emojiList[randomIndex];
         return new Item(this.avatarProtoType, 1, 1, avatar);
     }
 }
