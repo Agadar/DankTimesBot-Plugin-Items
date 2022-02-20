@@ -40,8 +40,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         while ((equipmentInShop = chatItemsData.shopInventory.filter(item => prototypeIds.includes(item.prototype.id))).length > 4) {
             const randomIndex = Math.floor(Math.random() * equipmentInShop.length);
             const randomItem = equipmentInShop[randomIndex];
-            const indexInShop = chatItemsData.shopInventory.indexOf(randomItem);
-            chatItemsData.shopInventory.splice(indexInShop, 1);
+            chatItemsData.removeFromInventory(chatItemsData.shopInventory, randomItem, 1);
         }
         this.addRandomEquipment(chatItemsData);
     }

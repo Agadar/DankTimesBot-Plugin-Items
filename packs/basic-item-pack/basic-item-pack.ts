@@ -34,7 +34,7 @@ export class BasicItemPack extends AbstractItemPack {
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
         const cookies = new Item(this.cookieProtoType, this.numberOfCookiesInShop);
-        chatItemsData.shopInventory.push(cookies);
+        chatItemsData.addToInventory(chatItemsData.shopInventory, cookies);
     }
 
     /**
