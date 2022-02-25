@@ -1,3 +1,4 @@
+import * as nodeEmoji from "node-emoji";
 import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
@@ -217,7 +218,7 @@ export class Plugin extends AbstractPlugin {
   }
 
   /**
-   * equipment command
+   * unequipment command
    */
   private unequip(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
@@ -236,7 +237,7 @@ export class Plugin extends AbstractPlugin {
   }
 
   /**
-   * identify command
+   * use command
    */
   private use(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!match) {
@@ -444,6 +445,7 @@ export class Plugin extends AbstractPlugin {
   }
 
   private determineAmountAndItemNameFromInput(match: string): { amount: number, itemName: string } {
+    match = nodeEmoji.replace(match, (emoji) => emoji.emoji);
     const matchSplit = match.split(" ");
     let amount: number;
     let itemName: string;
@@ -468,7 +470,8 @@ export class Plugin extends AbstractPlugin {
   }
 
   private findItemInInventory(inventory: Item[], match: string): Item | null {
-    return inventory.find((item) => item.name.toLowerCase() === match.toLowerCase());
+    return inventory.find((item) => nodeEmoji.replace(item.name.toLowerCase(),
+      (emoji) => emoji.emoji) === nodeEmoji.replace(match.toLowerCase(), (emoji) => emoji.emoji));
   }
 
   private itemsOccupyingDesiredSlots(equipment: Item[], itemPrototype: ItemProtoType): Item[] {
