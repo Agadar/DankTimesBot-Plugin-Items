@@ -129,9 +129,10 @@ export class Plugin extends AbstractPlugin {
       return "🎒 Your inventory is empty.";
     }
 
+    let index = 0;
     let inventoryStr = "Your inventory contains the following items:\n";
     inventory.forEach((item) => {
-      inventoryStr += `\n${item.prettyName()}`;
+      inventoryStr += `\n[${index++}] ${item.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
@@ -157,9 +158,10 @@ export class Plugin extends AbstractPlugin {
       return "👐 You have nothing equipped.";
     }
 
+    let index = 0;
     let equipmentStr = "You have the following items equipped:\n";
     equipment.forEach((item) => {
-      equipmentStr += `\n${item.prettyName()}`;
+      equipmentStr += `\n[${index++}] ${item.prettyName()}`;
       if (item.prototype.tradeable) {
         const price = item.getSellPrice(this.getChatModifier(chat));
         equipmentStr += ` worth <i>${price}</i> points`;
@@ -270,9 +272,10 @@ export class Plugin extends AbstractPlugin {
     if (chatItemsData.shopInventory.length === 0) {
       return "🛒 The shop is all out of stock.";
     }
+    let index = 0;
     let inventoryStr = "The shop has the following item(s) for sale:\n";
     chatItemsData.shopInventory.forEach((item) => {
-      inventoryStr += `\n${item.prettyName()}`;
+      inventoryStr += `\n[${index++}] ${item.prettyName()}`;
       if (item.stackSize > 1) {
         inventoryStr += ` (<i>${item.stackSize}</i>)`;
       }
@@ -470,6 +473,11 @@ export class Plugin extends AbstractPlugin {
   }
 
   private findItemInInventory(inventory: Item[], match: string): Item | null {
+    const index = Number(match);
+
+    if (!isNaN(index) && index > -1 && index < inventory.length) {
+      return inventory[index];
+    }
     return inventory.find((item) => nodeEmoji.replace(item.name.toLowerCase(),
       (emoji) => emoji.emoji) === nodeEmoji.replace(match.toLowerCase(), (emoji) => emoji.emoji));
   }
