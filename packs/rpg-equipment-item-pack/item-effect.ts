@@ -2,14 +2,29 @@ import { AlterUserScoreArgs } from "../../../../src/chat/alter-user-score-args";
 
 export class ItemEffect {
 
-    private static readonly LIFE_PLUGIN = "Life";
+    // Russian Roulette
     private static readonly RUSSIAN_ROULETTE_PLUGIN = "Russian Roulette";
+    private static readonly NO_BULLET_IN_CYLINDER = "no.bullet.in.cylinder";
+    private static readonly BULLET_IN_CYLINDER = "bullet.in.cylinder";
 
+    // Life
+    private static readonly LIFE_PLUGIN = "Life";
     private static readonly WORK_COMPLETED = "workCompleted";
     private static readonly CRIME_COMMITTED = "crimeCommitted";
     private static readonly BREAKOUT_SUCCEEDED = "breakoutSucceeded";
+
+    // Blackjack
+    private static readonly BLACKJACK_PLUGIN = "Blackjack";
     private static readonly WINNER_REWARD = "winner.reward";
-    private static readonly NO_BULLET_IN_CYLINDER = "no.bullet.in.cylinder";
+    
+    // Horseraces
+    private static readonly HORSERACES_PLUGIN = "Horse Races Plugin";
+    private static readonly HORSERACE_1ST_PLACE_WINNING_SCORE_EVENT = "horserace.1stplace";
+    private static readonly HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT = "horserace.2ndplace";
+    private static readonly HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT = "horserace.3rdplace";
+    private static readonly HORSERACE_WIN_BET_SCORE_EVENT = "horserace.winbet";
+    private static readonly HORSERACE_APPLY_DRUGS_SCORE_EVENT = "horserace.horsedope";
+    private static readonly HORSERACE_CHEATER_CAUGHT_SCORE_EVENT = "horserace.cheatercaught";
 
     constructor(
         public readonly name: string,
@@ -45,10 +60,10 @@ export class ItemEffect {
             new ItemEffect("Liberator", ItemEffect.LIFE_PLUGIN, [ItemEffect.BREAKOUT_SUCCEEDED], 0.5,
                 "Increases points gained from breaking out players by", 4),
 
-            new ItemEffect("Oracle", "Blackjack", [ItemEffect.WINNER_REWARD], 0.02,
+            new ItemEffect("Oracle", ItemEffect.BLACKJACK_PLUGIN, [ItemEffect.WINNER_REWARD], 0.02,
                 "Increases points gained from winning blackjack by", 4),
 
-            new ItemEffect("Immortal", ItemEffect.RUSSIAN_ROULETTE_PLUGIN, ["bullet.in.cylinder"], -0.2,
+            new ItemEffect("Immortal", ItemEffect.RUSSIAN_ROULETTE_PLUGIN, [ItemEffect.BULLET_IN_CYLINDER], -0.2,
                 "Reduces points lost from losing russian roulette by"),
 
             new ItemEffect("Fool-Hearted", ItemEffect.RUSSIAN_ROULETTE_PLUGIN, [ItemEffect.NO_BULLET_IN_CYLINDER], 0.15,
@@ -61,7 +76,11 @@ export class ItemEffect {
                 ItemEffect.CRIME_COMMITTED,
                 ItemEffect.BREAKOUT_SUCCEEDED,
                 ItemEffect.WINNER_REWARD,
-                ItemEffect.NO_BULLET_IN_CYLINDER
+                ItemEffect.NO_BULLET_IN_CYLINDER,
+                ItemEffect.HORSERACE_1ST_PLACE_WINNING_SCORE_EVENT,
+                ItemEffect.HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT,
+                ItemEffect.HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT,
+                ItemEffect.HORSERACE_WIN_BET_SCORE_EVENT
             ], 0.01, "Increases all points gained by", 4)
         ];
     };
