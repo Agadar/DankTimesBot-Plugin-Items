@@ -1,32 +1,41 @@
 import { PreUserScoreChangedEventArguments } from "../../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
-import { EquipmentSlot } from "../../item/equipment-slot";
 import { ItemProtoType } from "../../item/item-prototype";
+import { ItemAesthetics } from "./item-aesthetics";
+import { ItemEffect } from "./item-effect";
 
+/**
+ * Old user score change equipment, to be replaced with the new version.
+ */
 export class UserScoreChangeEquipment extends ItemProtoType {
 
     public static readonly ANY = "*";
 
+    private static readonly pricemodifier = 200;
+
     constructor(
         id: number,
-        name: string,
-        buyPrice: number,
-        sellPriceRatioToBuyPrice: number,
-        icon: string,
-        description: string,
-        tags: string[],
-        equipmentSlots: EquipmentSlot[],
-        private readonly nameOfOriginPlugin: string,
-        private readonly scoreChangeReasons: string[],
-        private readonly modifier: number,
-        maxRank: number
+        private readonly aesthetics: ItemAesthetics,
+        private readonly effect: ItemEffect
     ) {
-        super(id, name, buyPrice, sellPriceRatioToBuyPrice, icon, description, tags, false, false, equipmentSlots,
-            true, false, maxRank);
+        super(
+            id,
+            `${aesthetics.name} of the ${effect.name}`,
+            UserScoreChangeEquipment.pricemodifier * aesthetics.itemType.itemTypeModifier,
+            0.5,
+            aesthetics.icon,
+            effect.description,
+            aesthetics.itemType.tags,
+            false,
+            false,
+            aesthetics.itemType.equipmentSlots,
+            true,
+            false,
+            effect.maxRank);
     }
 
     public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number): void {
-        if ((this.nameOfOriginPlugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === this.nameOfOriginPlugin) &&
-            (this.scoreChangeReasons.includes(UserScoreChangeEquipment.ANY) || this.scoreChangeReasons.includes(event.reason))) {
+        if ((this.effect.plugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === this.effect.plugin) &&
+            (this.effect.reasons.includes(UserScoreChangeEquipment.ANY) || this.effect.reasons.includes(event.reason))) {
             event.changeInScore *= (1 + this.baseModifierForRank(rank));
         }
     }
@@ -38,6 +47,7 @@ export class UserScoreChangeEquipment extends ItemProtoType {
     }
 
     private baseModifierForRank(rank: number): number {
-        return this.modifier + this.modifier * 0.5 * (rank - 1);
+        const modifier = this.aesthetics.itemType.itemTypeModifier * this.effect.modifier;
+        return modifier + modifier * 0.5 * (rank - 1);
     }
 }

@@ -1,4 +1,3 @@
-import { EquipmentSlot } from "../../item/equipment-slot";
 import { ItemProtoType } from "../../item/item-prototype";
 import { ItemEffect } from "../rpg-equipment-item-pack/item-effect"
 import { UserScoreChangeEquipment } from "./user-score-change-equipment";
@@ -12,8 +11,6 @@ export class RpgPrototypes {
     public readonly ringItemProtoTypes = new Array<ItemProtoType>();
     public readonly necklaceItemProtoTypes = new Array<ItemProtoType>();
 
-    private static readonly pricemodifier = 200;
-
     constructor() {
         let oneHandedId = 1000;
         let twoHandedId = 1100;
@@ -22,48 +19,43 @@ export class RpgPrototypes {
         let necklaceId = 1400;
         let newShieldsId = 1500;
 
-        ItemEffect.pointAlteringEffects().forEach((effect) => {
-            ItemAesthetics.oneHandedWeapons().forEach((item) => {
-                const weapon = this.createWeapon(1.25, effect, item, oneHandedId++, ["Main Hand"], [EquipmentSlot.MainHand]);
+        ItemEffect.ALL.forEach((effect) => {
+            ItemAesthetics.oneHandedWeapons().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, oneHandedId++);
                 this.oneHandedItemProtoTypes.push(weapon);
             });
-            ItemAesthetics.twoHandedWeapons().forEach((item) => {
-                const weapon = this.createWeapon(2, effect, item, twoHandedId++, ["Two-Handed"], [EquipmentSlot.MainHand, EquipmentSlot.OffHand]);
+            ItemAesthetics.twoHandedWeapons().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, twoHandedId++);
                 this.twoHandedItemProtoTypes.push(weapon);
             });
-            ItemAesthetics.offHandWeapons().forEach((item) => {
-                const weapon = this.createWeapon(0.75, effect, item, offHandId++, ["Off-Hand"], [EquipmentSlot.OffHand]);
+            ItemAesthetics.offHandWeapons().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, offHandId++);
                 this.offHandItemProtoTypes.push(weapon);
             });
-            ItemAesthetics.rings().forEach((item) => {
-                const weapon = this.createWeapon(0.5, effect, item, ringId++, ["Finger"], [EquipmentSlot.Fingers]);
+            ItemAesthetics.rings().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, ringId++);
                 this.ringItemProtoTypes.push(weapon);
             });
-            ItemAesthetics.necklaces().forEach((item) => {
-                const weapon = this.createWeapon(0.5, effect, item, necklaceId++, ["Neck"], [EquipmentSlot.Neck]);
+            ItemAesthetics.necklaces().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, necklaceId++);
                 this.necklaceItemProtoTypes.push(weapon);
             });
-            ItemAesthetics.newShields().forEach((item) => {
-                const weapon = this.createWeapon(0.75, effect, item, newShieldsId++, ["Off-Hand"], [EquipmentSlot.OffHand]);
+            ItemAesthetics.newShields().forEach((aesthetic) => {
+                const weapon = this.createWeapon(effect, aesthetic, newShieldsId++);
                 this.offHandItemProtoTypes.push(weapon);
             });
         });
     }
 
     public get allPrototypes(): Array<ItemProtoType> {
-        return this.oneHandedItemProtoTypes.concat(this.twoHandedItemProtoTypes).concat(this.offHandItemProtoTypes)
-            .concat(this.ringItemProtoTypes).concat(this.necklaceItemProtoTypes);
+        return this.oneHandedItemProtoTypes
+            .concat(this.twoHandedItemProtoTypes)
+            .concat(this.offHandItemProtoTypes)
+            .concat(this.ringItemProtoTypes)
+            .concat(this.necklaceItemProtoTypes);
     }
 
-    private createWeapon(itemTypeModifier: number, effect: ItemEffect, itemAesthetics: ItemAesthetics,
-        id: number, tags: string[], slots: EquipmentSlot[]) {
-
-        const baseModifier = itemTypeModifier * effect.modifier;
-        const buyPriceMod = RpgPrototypes.pricemodifier * itemTypeModifier;
-        const name = `${itemAesthetics.name} of the ${effect.name}`;
-
-        const weapon = new UserScoreChangeEquipment(id, name, buyPriceMod, 0.5, itemAesthetics.icon, effect.description,
-            tags, slots, effect.plugin, effect.reasons, baseModifier, effect.maxRank);
-        return weapon;
+    private createWeapon(effect: ItemEffect, itemAesthetics: ItemAesthetics, id: number) {
+        return new UserScoreChangeEquipment(id, itemAesthetics, effect);
     }
 }
