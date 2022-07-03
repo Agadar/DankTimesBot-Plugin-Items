@@ -18,7 +18,8 @@ export class ChatItemsData {
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype && toFind.rank === item.rank && toFind.metaData === item.metaData);
+        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype 
+            && toFind.rank === item.rank && toFind.metaData === item.metaData);
 
         if (itemInTargetInventory) {
             itemInTargetInventory.stackSize += item.stackSize;

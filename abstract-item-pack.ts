@@ -23,17 +23,23 @@ export abstract class AbstractItemPack {
      * What to do during chat initialisation. Allows this pack to for example add
      * initial items to the shop.
      */
-    public onChatInitialisation(chatItemsData: ChatItemsData): void {}
+    public onChatInitialisation(chatItemsData: ChatItemsData): void {
+        // No behavior by default.
+    }
 
     /**
      * What to do on the hourly tick. Allows this pack to for example alter the
      * items in the shop or players' inventories.
      */
-    public OnHourlyTick(chatItemsData: ChatItemsData): void {}
+    public OnHourlyTick(chatItemsData: ChatItemsData): void {
+        // No behavior by default.
+    }
 
     /**
      * What to do on the nightly update. Allows this pack to for example alter the
      * items in the shop or players' inventories.
      */
-    public OnNightlyUpdate(chatItemsData: ChatItemsData): void {}
+    public OnNightlyUpdate(chatItemsData: ChatItemsData): void {
+        // No behavior by default.
+    }
 }

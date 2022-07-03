@@ -1,5 +1,5 @@
 import { ItemProtoType } from "../../item/item-prototype";
-import { ItemEffect } from "../rpg-equipment-item-pack/item-effect"
+import { ItemEffect } from "../rpg-equipment-item-pack/item-effect";
 import { UserScoreChangeEquipment } from "./user-score-change-equipment";
 import { ItemAesthetics } from "./item-aesthetics";
 

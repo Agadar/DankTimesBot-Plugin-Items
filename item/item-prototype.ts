@@ -73,7 +73,7 @@ export class ItemProtoType {
     /**
      * Gets the name for the specified rank, e.g. 'Scroll of Ingenuity II'.
      */
-    public nameForRank(rank: number = 1, metaData: any = null): string {
+    public nameForRank(rank = 1, metaData: any = null): string {
         if (rank == 1) {
             return this.name;
         }

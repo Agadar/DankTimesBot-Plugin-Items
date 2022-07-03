@@ -27,7 +27,7 @@ export class ChatEquipmentManager {
                 if (newPrototype) {
                     item.prototype = newPrototype;
                 }
-            })
+            });
             equipment.sort(Item.compare);
         });
     }

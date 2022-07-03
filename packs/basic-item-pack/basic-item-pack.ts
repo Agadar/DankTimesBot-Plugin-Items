@@ -58,5 +58,5 @@ export class BasicItemPack extends AbstractItemPack {
             const newMonkey = new Item(this.monkeyNFTProtoType, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, newMonkey);
         }
-     }
+    }
 }
