@@ -60,8 +60,7 @@ export class ItemAesthetics {
             ItemAesthetics.ALL.get("Warpick"),
             ItemAesthetics.ALL.get("Blunderbuss"),
             ItemAesthetics.ALL.get("Boomerang"),
-            ItemAesthetics.ALL.get("Wand"),
-            ItemAesthetics.ALL.get("Longsword")
+            ItemAesthetics.ALL.get("Wand")
         ];
     }
 
