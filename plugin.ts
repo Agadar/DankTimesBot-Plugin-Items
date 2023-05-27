@@ -18,6 +18,7 @@ import { ItemProtoType } from "./item/item-prototype";
 import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
+import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
 
 export class Plugin extends AbstractPlugin {
 
@@ -60,6 +61,7 @@ export class Plugin extends AbstractPlugin {
         this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
         this.subscribeToPluginEvent(PluginEvent.BotShutdown, () => this.fileIOHelper.persistData(this.chatsItemsData));
         this.subscribeToPluginEvent(PluginEvent.Custom, this.addItemPack.bind(this), "*", Plugin.ADD_ITEM_PACK_REASON);
+        this.subscribeToPluginEvent(PluginEvent.ChatReset, this.onChatReset.bind(this));
     }
 
     /**
@@ -106,16 +108,16 @@ export class Plugin extends AbstractPlugin {
    */
     private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         return "📦 The Items plugin supports the following commands:\n\n"
-      + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
-      + `/${Plugin.EQUIPMENT_CMD} to show your equipment\n`
-      + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
-      + `/${Plugin.EQUIP_CMD} to equip an item\n`
-      + `/${Plugin.UNEQUIP_CMD} to unequip an item\n`
-      + `/${Plugin.USE_CMD} to use an item\n\n`
-      + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
-      + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
-      + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
-      + `/${Plugin.UPGRADE_CMD} to upgrade an item`;
+            + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
+            + `/${Plugin.EQUIPMENT_CMD} to show your equipment\n`
+            + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
+            + `/${Plugin.EQUIP_CMD} to equip an item\n`
+            + `/${Plugin.UNEQUIP_CMD} to unequip an item\n`
+            + `/${Plugin.USE_CMD} to use an item\n\n`
+            + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
+            + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
+            + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
+            + `/${Plugin.UPGRADE_CMD} to upgrade an item`;
     }
 
     /**
@@ -547,5 +549,10 @@ export class Plugin extends AbstractPlugin {
         } else {
             console.error(`Failed to add item pack: ${JSON.stringify(eventArgs.eventData)}`);
         }
+    }
+
+    private onChatReset(eventArgs: ChatResetEventArguments): void {
+        const chatId = eventArgs.chat.id;
+        this.chatsItemsData.delete(chatId);
     }
 }
