@@ -12,42 +12,87 @@ export class UserScoreChangeEquipment extends ItemProtoType {
 
     private static readonly pricemodifier = 200;
 
-    constructor(
-        id: number,
-        private readonly aesthetics: ItemAesthetics,
-        private readonly effect: ItemEffect
-    ) {
+    constructor(private readonly aesthetics: ItemAesthetics) {
         super(
-            id,
-            `${aesthetics.name} of the ${effect.name}`,
+            aesthetics.id,
+            "",
             UserScoreChangeEquipment.pricemodifier * aesthetics.itemType.itemTypeModifier,
             0.5,
             aesthetics.icon,
-            effect.description,
+            "",
             aesthetics.itemType.tags,
             false,
             false,
             aesthetics.itemType.equipmentSlots,
             true,
-            false,
-            effect.maxRank);
+            false);
     }
 
-    public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number): void {
-        if ((this.effect.plugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === this.effect.plugin) &&
-            (this.effect.reasons.includes(UserScoreChangeEquipment.ANY) || this.effect.reasons.includes(event.reason))) {
-            event.changeInScore *= (1 + this.baseModifierForRank(rank));
+    public override getPrettyPrintsOfMatchingNames(input: string, chatModifier: number): string[] {
+        const allNames = new Array<{ name: string, rank: number, effectName: string }>();
+        ItemEffect.ALL.forEach((effect, effectName) => {
+            allNames.push({ name: `${this.aesthetics.name} of the ${effectName}`, rank: 1, effectName: effectName });
+
+            for (let rank = 1; rank <= effect.maxRank; rank++) {
+                const name = `${this.aesthetics.name} of the ${effectName} ${ItemProtoType.toRoman(rank)}`;
+                allNames.push({ name: name, rank: rank, effectName: effectName });
+            }
+        });      
+        return allNames
+            .filter(nameAndRank => nameAndRank.name.toLowerCase() === input.toLowerCase())
+            .map(nameAndRank => this.prettyPrint(chatModifier, nameAndRank.rank, nameAndRank.effectName));
+    }
+
+    public override baseName(metaData?: any): string {
+        const effect = ItemEffect.ALL.get(metaData);
+
+        if (!effect) {
+            this.logMetaDataError(metaData);
+            return super.baseName(metaData);
+        }
+        return `${this.aesthetics.name} of the ${effect.name}`;
+    }
+
+    public override getDescription(rank = 1, metaData?: any): string {
+        const effect = ItemEffect.ALL.get(metaData);
+
+        if (!effect) {
+            this.logMetaDataError(metaData);
+            return super.getDescription(rank, metaData);
+        }
+        const baseModifierForRank = this.baseModifierForRank(rank, effect);
+        const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
+        return `${effect.description} ${modifierAsPercentage}%`;
+    }
+
+    public override getMaxRank(metaData?: any): number {
+        const effect = ItemEffect.ALL.get(metaData);
+
+        if (!effect) {
+            this.logMetaDataError(metaData);
+            return super.getMaxRank(metaData);
+        }
+        return effect.maxRank;
+    }
+
+    public override onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number, metaData?: any): void {
+        const effect = ItemEffect.ALL.get(metaData);
+
+        if (!effect) {
+            this.logMetaDataError(metaData);
+
+        } else if ((effect.plugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === effect.plugin) &&
+            (effect.reasons.includes(UserScoreChangeEquipment.ANY) || effect.reasons.includes(event.reason))) {
+            event.changeInScore *= (1 + this.baseModifierForRank(rank, effect));
         }
     }
 
-    public override getDescription(rank = 1): string {
-        const baseModifierForRank = this.baseModifierForRank(rank);
-        const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
-        return `${this.description} ${modifierAsPercentage}%`;
+    private baseModifierForRank(rank: number, effect: ItemEffect): number {
+        const modifier = this.aesthetics.itemType.itemTypeModifier * effect.modifier;
+        return modifier + modifier * 0.5 * (rank - 1);
     }
 
-    private baseModifierForRank(rank: number): number {
-        const modifier = this.aesthetics.itemType.itemTypeModifier * this.effect.modifier;
-        return modifier + modifier * 0.5 * (rank - 1);
+    private logMetaDataError(metaData: any): void {
+        console.error(`Invalid metadata ${JSON.stringify(metaData)} for UserScoreChangeEquipment`);
     }
 }

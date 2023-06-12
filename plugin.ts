@@ -418,10 +418,10 @@ export class Plugin extends AbstractPlugin {
                 return "😞 You don't have that item.";
             }
         }
-        if (itemToUpgrade.prototype.maxRank < 2) {
+        if (itemToUpgrade.getMaxRank() < 2) {
             return "😞 This item cannot be upgraded.";
         }
-        if (itemToUpgrade.rank >= itemToUpgrade.prototype.maxRank) {
+        if (itemToUpgrade.rank >= itemToUpgrade.getMaxRank()) {
             return "😞 This item cannot be upgraded further.";
         }
         let upgradePrice = itemToUpgrade.getUpgradePrice(this.getChatModifier(chat));

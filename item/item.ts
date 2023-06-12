@@ -19,10 +19,32 @@ export class Item {
     }
 
     /**
-     * Comparison method for sorting arrays. Sorts according to prototype.
+     * Comparison method for sorting arrays.
      */
     public static compare(a: Item, b: Item): number {
-        return ItemProtoType.compare(a.prototype, b.prototype);
+        if (a.prototype.equipmentSlots.length === 0 && b.prototype.equipmentSlots.length > 0) {
+            return 1;
+        }
+        if (a.prototype.equipmentSlots.length > 0 && b.prototype.equipmentSlots.length === 0) {
+            return -1;
+        }
+
+        for (let i = 0; i < Math.min(a.prototype.equipmentSlots.length, b.prototype.equipmentSlots.length); i++) {
+            if (a.prototype.equipmentSlots[i] > b.prototype.equipmentSlots[i]) {
+                return 1;
+            }
+            if (a.prototype.equipmentSlots[i] < b.prototype.equipmentSlots[i]) {
+                return -1;
+            }
+        }
+
+        if (a.prototype.baseName(a.metaData) > b.prototype.baseName(b.metaData)) {
+            return 1;
+        }
+        if (a.prototype.baseName(a.metaData) < b.prototype.baseName(b.metaData)) {
+            return -1;
+        }
+        return 0;
     }
 
     public toJSON(): { prototypeId: number, stackSize: number, rank: number, metaData: any } {
@@ -48,6 +70,10 @@ export class Item {
      */
     public prettyPrint(modifier: number): string {
         return this.prototype.prettyPrint(modifier, this.rank, this.metaData);
+    }
+
+    public getMaxRank(): number {
+        return this.prototype.getMaxRank(this.metaData);
     }
 
     public getBuyPrice(modifier: number): number {

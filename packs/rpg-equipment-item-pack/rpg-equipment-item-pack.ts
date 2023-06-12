@@ -2,6 +2,7 @@ import { AbstractItemPack } from "../../abstract-item-pack";
 import { ChatItemsData } from "../../chat/chat-items-data";
 import { Item } from "../../item/item";
 import { ItemProtoType } from "../../item/item-prototype";
+import { ItemEffect } from "./item-effect";
 import { RpgPrototypes } from "./rpg-prototypes";
 
 export class RPGEquipmentItemPack extends AbstractItemPack {
@@ -69,9 +70,13 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     }
 
     private addRandomEquipmentOfType(prototypes: ItemProtoType[], chatItemsData: ChatItemsData): void {
-        const randomIndex = Math.floor(Math.random() * prototypes.length);
-        const prototype = prototypes[randomIndex];
-        const item = new Item(prototype, 1, 1);
+        const randomPrototypeIndex = Math.floor(Math.random() * prototypes.length);
+        const prototype = prototypes[randomPrototypeIndex];
+
+        const randomEffectIndex = Math.floor(Math.random() * ItemEffect.ALL.size);
+        const effect = Array.from(ItemEffect.ALL)[randomEffectIndex][1];
+
+        const item = new Item(prototype, 1, 1, effect.name);
         chatItemsData.addToInventory(chatItemsData.shopInventory, item);
     }
 }

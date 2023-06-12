@@ -23,10 +23,10 @@ export class Avatar extends ItemProtoType {
     }
 
     public override nameForRank(rank?: number, metaData?: any): string {
-        return `${this.name} '${metaData}'`;
+        return `${this.baseName(metaData)} '${metaData}'`;
     }
 
-    public override onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, metaData: any = null): { msg: string, shouldConsume: boolean } {
+    public override onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, metaData?: any): { msg: string, shouldConsume: boolean } {
         if (user.availableAvatars.indexOf(metaData) !== -1) {
             return { msg: "😮 You already have this avatar available!", shouldConsume: false };
         }
