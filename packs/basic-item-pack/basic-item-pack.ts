@@ -6,8 +6,6 @@ import { Cookie } from "./cookie";
 
 export class BasicItemPack extends AbstractItemPack {
 
-    private readonly numberOfCookiesInShop = 10;
-
     private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 20000, 0.95, "🪙", "Limited Edition", ["Miscellaneous"],
         false, false, [], true, true);
     private readonly cookieProtoType = new Cookie(1);
@@ -33,28 +31,34 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        const cookies = new Item(this.cookieProtoType, this.numberOfCookiesInShop);
-        chatItemsData.addToInventory(chatItemsData.shopInventory, cookies);
+        this.addRandomBasicItems(chatItemsData);
     }
 
     /**
      * From AbstractItemPack.
      */
     public OnNightlyUpdate(chatItemsData: ChatItemsData): void {
-        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.cookieProtoType) && Math.random() > 0.8) {
+        this.addRandomBasicItems(chatItemsData);
+    }
+
+    private addRandomBasicItems(chatItemsData: ChatItemsData): void {
+        const itemsToRemove = chatItemsData.shopInventory.filter((item) => this.protoTypes.some((prototype) => prototype.id === item.prototype.id));
+        itemsToRemove.forEach((item) => chatItemsData.removeFromInventory(chatItemsData.shopInventory, item, item.stackSize));
+
+        if (Math.random() > 0.8) {
             const numberOfCookies = Math.floor(Math.random() * 10) + 1;
             const freshCookies = new Item(this.cookieProtoType, numberOfCookies);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshCookies);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.developerBrainProtoType) && Math.random() > 0.8) {
+        if (Math.random() > 0.8) {
             const freshBrain = new Item(this.developerBrainProtoType, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, freshBrain);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.dtbCoinPrototype) && Math.random() > 0.8) {
+        if (Math.random() > 0.8) {
             const newCoin = new Item(this.dtbCoinPrototype, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, newCoin);
         }
-        if (!chatItemsData.shopInventory.find((item) => item.prototype === this.monkeyNFTProtoType) && Math.random() > 0.8) {
+        if (Math.random() > 0.8) {
             const newMonkey = new Item(this.monkeyNFTProtoType, 1);
             chatItemsData.addToInventory(chatItemsData.shopInventory, newMonkey);
         }

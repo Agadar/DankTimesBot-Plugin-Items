@@ -73,7 +73,14 @@ export class ItemEffect {
             ItemEffect.HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT,
             ItemEffect.HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT,
             ItemEffect.HORSERACE_WIN_BET_SCORE_EVENT
-        ], 0.01, "Increases all points gained by", 4)]
+        ], 0.01, "Increases all points gained by", 4)],
+
+        ["Cavalier", new ItemEffect("Cavalier", ItemEffect.HORSERACES_PLUGIN, [
+            ItemEffect.HORSERACE_1ST_PLACE_WINNING_SCORE_EVENT,
+            ItemEffect.HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT,
+            ItemEffect.HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT,
+            ItemEffect.HORSERACE_WIN_BET_SCORE_EVENT
+        ], 0.04, "Increases points gained from winning horse races and bets by", 4)],
     ]);
 
     constructor(

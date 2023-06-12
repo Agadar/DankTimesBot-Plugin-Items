@@ -8,6 +8,7 @@ import { RpgPrototypes } from "./rpg-prototypes";
 export class RPGEquipmentItemPack extends AbstractItemPack {
 
     private readonly rpgPrototypes = new RpgPrototypes();
+    private readonly maxEquipmentsInShop = 3;
 
     constructor() {
         super("RpgEquipmentItemPack");
@@ -24,11 +25,9 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        this.addRandomEquipmentOfType(this.rpgPrototypes.oneHandedItemProtoTypes, chatItemsData);
-        this.addRandomEquipmentOfType(this.rpgPrototypes.twoHandedItemProtoTypes, chatItemsData);
-        this.addRandomEquipmentOfType(this.rpgPrototypes.offHandItemProtoTypes, chatItemsData);
-        this.addRandomEquipmentOfType(this.rpgPrototypes.ringItemProtoTypes, chatItemsData);
-        this.addRandomEquipmentOfType(this.rpgPrototypes.necklaceItemProtoTypes, chatItemsData);
+        for (let i = 0; i < this.maxEquipmentsInShop; i++) {
+            this.addRandomEquipment(chatItemsData);
+        }
     }
 
     /**
@@ -38,7 +37,7 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         const prototypeIds = this.itemProtoTypes().map(prototype => prototype.id);
         let equipmentInShop: Item[];
 
-        while ((equipmentInShop = chatItemsData.shopInventory.filter(item => prototypeIds.includes(item.prototype.id))).length > 4) {
+        while ((equipmentInShop = chatItemsData.shopInventory.filter(item => prototypeIds.includes(item.prototype.id))).length >= this.maxEquipmentsInShop) {
             const randomIndex = Math.floor(Math.random() * equipmentInShop.length);
             const randomItem = equipmentInShop[randomIndex];
             chatItemsData.removeFromInventory(chatItemsData.shopInventory, randomItem, 1);

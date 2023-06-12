@@ -8,7 +8,7 @@ import { AvatarValuePack } from "./avatar-value-pack";
 
 export class AvatarItemPack extends AbstractItemPack {
 
-    private readonly numberOfAvatarsInShop = 3;
+    private readonly numberOfAvatarsInShop = 1;
 
     private readonly avatarProtoType = new Avatar(100);
     private readonly avatarValuePackProtoType = new AvatarValuePack(101);
