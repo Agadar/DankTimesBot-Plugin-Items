@@ -476,7 +476,7 @@ export class Plugin extends AbstractPlugin {
         const alterScoreArgs = new AlterUserScoreArgs(user, -upgradePrice, this.name, Plugin.UPGRADE_REASON);
         upgradePrice = chat.alterUserScore(alterScoreArgs);
 
-        const upgradedItem = new Item(itemToUpgrade.prototype, 1, itemToUpgrade.rank + 1);
+        const upgradedItem = new Item(itemToUpgrade.prototype, 1, itemToUpgrade.rank + 1, itemToUpgrade.metaData);
         chatItemsData.removeFromInventory(inventory, itemToUpgrade, 1);
         chatItemsData.addToInventory(inventory, upgradedItem);
 

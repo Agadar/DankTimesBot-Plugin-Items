@@ -105,6 +105,9 @@ export class ItemEffect {
 
         ["Merchant", new ItemEffect("Merchant", ItemEffect.ITEMS_PLUGIN, [ItemEffect.ITEMS_BUY_REASON], -0.03,
             "Receive", 4, "of the buying price back after buying an item from the shop")],
+
+        ["Enhancer", new ItemEffect("Enhancer", ItemEffect.ITEMS_PLUGIN, [ItemEffect.ITEMS_UPGRADE_REASON], -0.03,
+            "Receive", 4, "of the upgrade price back after upgrading an item")],
     ]);
 
     constructor(
