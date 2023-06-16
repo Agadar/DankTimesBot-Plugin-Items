@@ -62,6 +62,10 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         }
         const baseModifierForRank = this.baseModifierForRank(rank, effect);
         const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
+
+        if (effect.postDescription) {
+            return `${effect.description} ${modifierAsPercentage}% ${effect.postDescription}`;
+        }
         return `${effect.description} ${modifierAsPercentage}%`;
     }
 

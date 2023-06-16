@@ -6,7 +6,7 @@ import { Cookie } from "./cookie";
 
 export class BasicItemPack extends AbstractItemPack {
 
-    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 20000, 0.95, "🪙", "Limited Edition", ["Miscellaneous"],
+    private readonly dtbCoinPrototype = new ItemProtoType(0, "DTB Coin", 20000, 0.5, "🪙", "Limited Edition", ["Miscellaneous"],
         false, false, [], true, true);
     private readonly cookieProtoType = new Cookie(1);
     private readonly developerBrainProtoType = new ItemProtoType(2, "Preserved Developer's Brain", 60, 0.5, "🧠",
