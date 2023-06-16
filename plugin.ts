@@ -34,6 +34,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly BUY_CMD = "buy";
     private static readonly SELL_CMD = "sell";
     private static readonly UPGRADE_CMD = "upgrade";
+    private static readonly TRASH_CMD = "trash";
 
     // User score change reasons
     private static readonly BUY_REASON = "buy.item";
@@ -79,7 +80,8 @@ export class Plugin extends AbstractPlugin {
         const buyCmd = new BotCommand([Plugin.BUY_CMD], "", this.buy.bind(this), false);
         const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
         const upgradeCmd = new BotCommand([Plugin.UPGRADE_CMD], "", this.upgrade.bind(this), false);
-        return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd];
+        const trashCmd = new BotCommand([Plugin.TRASH_CMD], "", this.trash.bind(this), false);
+        return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd, trashCmd];
     }
 
     /**
@@ -117,7 +119,8 @@ export class Plugin extends AbstractPlugin {
             + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
             + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
             + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
-            + `/${Plugin.UPGRADE_CMD} to upgrade an item`;
+            + `/${Plugin.UPGRADE_CMD} to upgrade an item\n`
+            + `/${Plugin.TRASH_CMD} to trash an item`;
     }
 
     /**
@@ -395,6 +398,47 @@ export class Plugin extends AbstractPlugin {
 
         } else {
             successMsg = `Sold ${itemAndPrototype.prettyName()} for <i>${sellPrice}</i> points!`;
+        }
+        return successMsg;
+    }
+
+    /**
+     * trash command
+     */
+    private trash(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        if (!match) {
+            return "😞 You have to specify what you want to trash.";
+        }
+        const amountAndItemName = this.determineAmountAndItemNameFromInput(match);
+
+        if (amountAndItemName.amount < 1) {
+            return "😞 You have to trash at least 1.";
+        }
+        const chatItemsData = this.getOrCreateChatItemsData(chat);
+        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const itemAndPrototype = this.findItemInInventory(inventory, amountAndItemName.itemName);
+
+        if (!itemAndPrototype) {
+            return "😞 You don't have that item.";
+        }
+        let amount = amountAndItemName.amount;
+        const playerHasInsufficientAmount = itemAndPrototype.stackSize < amount;
+
+        if (playerHasInsufficientAmount) {
+            amount = itemAndPrototype.stackSize;
+        }
+        chatItemsData.moveToInventory(inventory, itemAndPrototype, amount, []);
+        let successMsg: string;
+
+        if (playerHasInsufficientAmount) {
+            successMsg = `You did not have ${itemAndPrototype.prettyName()} (<i>${amountAndItemName.amount}</i>).\n\n`;
+            successMsg += `Instead trashed ${itemAndPrototype.prettyName()} (<i>${amount}</i>)!`;
+
+        } else if (amount > 1) {
+            successMsg = `Trashed ${itemAndPrototype.prettyName()} (<i>${amount}</i>)!`;
+
+        } else {
+            successMsg = `Trashed ${itemAndPrototype.prettyName()}!`;
         }
         return successMsg;
     }
