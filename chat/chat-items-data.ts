@@ -1,3 +1,4 @@
+import { User } from "../../../src/chat/user/user";
 import { Item } from "../item/item";
 import { ItemProtoType } from "../item/item-prototype";
 import { ChatEquipmentManager } from "./chat-equipment-manager";
@@ -5,11 +6,21 @@ import { ChatInventoryManager } from "./chat-inventory-manager";
 
 export class ChatItemsData {
 
+    public lastOpenedInventory: Item[] = [];
+
     constructor(
         public readonly chatId: number,
-        public readonly inventoryManager = new ChatInventoryManager(),
-        public readonly equipmentManager = new ChatEquipmentManager(),
+        private readonly inventoryManager = new ChatInventoryManager(),
+        private readonly equipmentManager = new ChatEquipmentManager(),
         public readonly shopInventory = new Array<Item>()) { }
+
+    public getOrCreateInventory(user: User): Item[] {
+        return this.inventoryManager.getOrCreateInventory(user);
+    }
+
+    public getOrCreateEquipment(user: User): Item[] {
+        return this.equipmentManager.getOrCreateEquipment(user);
+    }
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {
         this.removeFromInventory(from, item, amount);

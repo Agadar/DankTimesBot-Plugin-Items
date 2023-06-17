@@ -128,7 +128,8 @@ export class Plugin extends AbstractPlugin {
    */
     private inventory(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
+        chatItemsData.lastOpenedInventory = inventory;
 
         if (inventory.length === 0) {
             return "🎒 Your inventory is empty.";
@@ -157,7 +158,8 @@ export class Plugin extends AbstractPlugin {
    */
     private equipment(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+        const equipment = chatItemsData.getOrCreateEquipment(user);
+        chatItemsData.lastOpenedInventory = equipment;
 
         if (equipment.length === 0) {
             return "👐 You have nothing equipped.";
@@ -183,6 +185,13 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to tell me what you want to identify.";
         }
         const chatModifier = this.getChatModifier(chat);
+        const chatItemsData = this.getOrCreateChatItemsData(chat);
+        const inventory = chatItemsData.lastOpenedInventory;
+        const item = this.findItemInInventory(inventory, match);
+
+        if (item != null) {
+            return item.prettyPrint(chatModifier);
+        }
         const prettyPrints = Array.from(this.itemProtoTypes.values())
             .flatMap(prototype => prototype.getPrettyPrintsOfMatchingNames(match, chatModifier));
 
@@ -200,7 +209,7 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to specify what item you want to equip.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         const itemAndPrototype = this.findItemInInventory(inventory, match);
 
         if (!itemAndPrototype) {
@@ -209,7 +218,7 @@ export class Plugin extends AbstractPlugin {
         if (itemAndPrototype.prototype.equipmentSlots.length == 0) {
             return `You put ${itemAndPrototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
         }
-        const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+        const equipment = chatItemsData.getOrCreateEquipment(user);
         const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, itemAndPrototype.prototype);
         let equippedText = `Equipped ${itemAndPrototype.prettyName()}!`;
 
@@ -232,13 +241,13 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to specify what item you want to unequip.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const equipment = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+        const equipment = chatItemsData.getOrCreateEquipment(user);
         const itemAndPrototype = this.findItemInInventory(equipment, match);
 
         if (!itemAndPrototype) {
             return "😞 You don't have that item equipped.";
         }
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         chatItemsData.moveToInventory(equipment, itemAndPrototype, 1, inventory);
         return `Unequipped ${itemAndPrototype.prettyName()}!`;
     }
@@ -251,7 +260,7 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to specify what item you want to use.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         const itemAndPrototype = this.findItemInInventory(inventory, match);
 
         if (!itemAndPrototype) {
@@ -273,6 +282,7 @@ export class Plugin extends AbstractPlugin {
    */
     private shop(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         const chatItemsData = this.getOrCreateChatItemsData(chat);
+        chatItemsData.lastOpenedInventory = chatItemsData.shopInventory;
 
         if (chatItemsData.shopInventory.length === 0) {
             return "🛒 The shop is all out of stock.";
@@ -334,7 +344,7 @@ export class Plugin extends AbstractPlugin {
         }
         const alterScoreArgs = new AlterUserScoreArgs(user, -buyPrice, this.name, Plugin.BUY_REASON);
         buyPrice = chat.alterUserScore(alterScoreArgs);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         chatItemsData.moveToInventory(chatItemsData.shopInventory, itemAndPrototype, amount, inventory);
         let successMsg: string;
 
@@ -368,7 +378,7 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to sell at least 1.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         const itemAndPrototype = this.findItemInInventory(inventory, amountAndItemName.itemName);
 
         if (!itemAndPrototype) {
@@ -415,7 +425,7 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to trash at least 1.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        const inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+        const inventory = chatItemsData.getOrCreateInventory(user);
         const itemAndPrototype = this.findItemInInventory(inventory, amountAndItemName.itemName);
 
         if (!itemAndPrototype) {
@@ -451,11 +461,11 @@ export class Plugin extends AbstractPlugin {
             return "😞 You have to specify what you want to upgrade.";
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
-        let inventory = chatItemsData.equipmentManager.getOrCreateEquipment(user);
+        let inventory = chatItemsData.getOrCreateEquipment(user);
         let itemToUpgrade = this.findItemInInventory(inventory, match);
 
         if (!itemToUpgrade) {
-            inventory = chatItemsData.inventoryManager.getOrCreateInventory(user);
+            inventory = chatItemsData.getOrCreateInventory(user);
             itemToUpgrade = this.findItemInInventory(inventory, match);
 
             if (!itemToUpgrade) {
@@ -553,7 +563,7 @@ export class Plugin extends AbstractPlugin {
     }
 
     private onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
-        const equipment = this.getOrCreateChatItemsData(event.chat).equipmentManager.getOrCreateEquipment(event.user);
+        const equipment = this.getOrCreateChatItemsData(event.chat).getOrCreateEquipment(event.user);
         equipment.forEach((item) => {
             item.onPreUserScoreChange(event);
         });
