@@ -1,4 +1,5 @@
 import { User } from "../../../src/chat/user/user";
+import { EquipmentSlot } from "../item/equipment-slot";
 import { Item } from "../item/item";
 import { ItemProtoType } from "../item/item-prototype";
 import { ChatEquipmentManager } from "./chat-equipment-manager";
@@ -20,6 +21,11 @@ export class ChatItemsData {
 
     public getOrCreateEquipment(user: User): Item[] {
         return this.equipmentManager.getOrCreateEquipment(user);
+    }
+
+    public getItemInSlot(user: User, slot: EquipmentSlot): Item | null {
+        const equipment = this.getOrCreateEquipment(user);
+        return equipment.find((item) => item.prototype.equipmentSlots.some((equippedSlot) => equippedSlot === slot)) ?? null;
     }
 
     public moveToInventory(from: Item[], item: Item, amount: number, to: Item[]): void {

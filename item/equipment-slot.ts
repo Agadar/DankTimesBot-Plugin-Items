@@ -14,3 +14,22 @@ export enum EquipmentSlot {
     Fingers,
     Neck,
 }
+
+/**
+ * Gets all equipment slots.
+ * @returns All equipment slots in an array.
+ */
+export function equipmentSlots(): EquipmentSlot[] {
+    return [
+        EquipmentSlot.MainHand,
+        EquipmentSlot.OffHand,
+        EquipmentSlot.Head,
+        EquipmentSlot.Chest,
+        EquipmentSlot.Hands,
+        EquipmentSlot.Belt,
+        EquipmentSlot.Legs,
+        EquipmentSlot.Feet,
+        EquipmentSlot.Fingers,
+        EquipmentSlot.Neck,
+    ];
+}

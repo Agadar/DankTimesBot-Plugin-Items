@@ -1,5 +1,4 @@
 import { AlterUserScoreArgs } from "../../../../src/chat/alter-user-score-args";
-import { Plugin } from "../../plugin";
 
 export class ItemEffect {
 

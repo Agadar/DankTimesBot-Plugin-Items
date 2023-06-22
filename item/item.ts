@@ -58,6 +58,10 @@ export class Item {
         return this.prototype.nameForRank(this.rank, this.metaData);
     }
 
+    public get isEquippable(): boolean {
+        return this.prototype.equipmentSlots.length > 0;
+    }
+
     /**
      * Pretty prints this item's name including font style and emoji.
      */

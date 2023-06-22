@@ -19,6 +19,7 @@ import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
+import { EquipmentSlot, equipmentSlots } from "./item/equipment-slot";
 
 export class Plugin extends AbstractPlugin {
 
@@ -27,6 +28,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly INVENTORY_CMD = "inventory";
     private static readonly EQUIPMENT_CMD = "equipment";
     private static readonly EQUIP_CMD = "equip";
+    private static readonly EQUIP_ALL_CMD = ["equipall", "equipset"];
     private static readonly UNEQUIP_CMD = "unequip";
     private static readonly IDENTIFY_CMD = "identify";
     private static readonly USE_CMD = "use";
@@ -74,6 +76,7 @@ export class Plugin extends AbstractPlugin {
         const equipmentCmd = new BotCommand([Plugin.EQUIPMENT_CMD, "equipped"], "", this.equipment.bind(this), false);
         const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD, "describe"], "", this.identify.bind(this), false);
         const equipCmd = new BotCommand([Plugin.EQUIP_CMD], "", this.equip.bind(this), false);
+        const equipAllCmd = new BotCommand(Plugin.EQUIP_ALL_CMD, "", this.equipAll.bind(this), false);
         const unequipCmd = new BotCommand([Plugin.UNEQUIP_CMD], "", this.unequip.bind(this), false);
         const useCmd = new BotCommand([Plugin.USE_CMD], "", this.use.bind(this), false);
         const shopCmd = new BotCommand([Plugin.SHOP_CMD], "", this.shop.bind(this), false);
@@ -81,7 +84,7 @@ export class Plugin extends AbstractPlugin {
         const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
         const upgradeCmd = new BotCommand([Plugin.UPGRADE_CMD], "", this.upgrade.bind(this), false);
         const trashCmd = new BotCommand([Plugin.TRASH_CMD], "", this.trash.bind(this), false);
-        return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd, trashCmd];
+        return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, equipAllCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd, trashCmd];
     }
 
     /**
@@ -114,6 +117,7 @@ export class Plugin extends AbstractPlugin {
             + `/${Plugin.EQUIPMENT_CMD} to show your equipment\n`
             + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
             + `/${Plugin.EQUIP_CMD} to equip an item\n`
+            + `/${Plugin.EQUIP_ALL_CMD[0]} to equip all items of a type\n`
             + `/${Plugin.UNEQUIP_CMD} to unequip an item\n`
             + `/${Plugin.USE_CMD} to use an item\n\n`
             + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
@@ -210,17 +214,17 @@ export class Plugin extends AbstractPlugin {
         }
         const chatItemsData = this.getOrCreateChatItemsData(chat);
         const inventory = chatItemsData.getOrCreateInventory(user);
-        const itemAndPrototype = this.findItemInInventory(inventory, match);
+        const itemToEquip = this.findItemInInventory(inventory, match);
 
-        if (!itemAndPrototype) {
+        if (!itemToEquip) {
             return "😞 You don't have that item.";
         }
-        if (itemAndPrototype.prototype.equipmentSlots.length == 0) {
-            return `You put ${itemAndPrototype.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
+        if (!itemToEquip.isEquippable) {
+            return `You put ${itemToEquip.prettyName()} on your head. You realize you look like an idiot and quickly take it off.`;
         }
         const equipment = chatItemsData.getOrCreateEquipment(user);
-        const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, itemAndPrototype.prototype);
-        let equippedText = `Equipped ${itemAndPrototype.prettyName()}!`;
+        const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, [itemToEquip]);
+        let equippedText = `Equipped ${itemToEquip.prettyName()}!`;
 
         if (itemsOccupyingDesiredSlots.length > 0) {
             equippedText += "\n";
@@ -229,8 +233,60 @@ export class Plugin extends AbstractPlugin {
                 equippedText += `\nUnequipped ${itemOccupyingDesiredSlot.prettyName()}!`;
             });
         }
-        chatItemsData.moveToInventory(inventory, itemAndPrototype, 1, equipment);
+        chatItemsData.moveToInventory(inventory, itemToEquip, 1, equipment);
         return equippedText;
+    }
+
+    /**
+    * equip all command
+    */
+    private equipAll(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        if (!match) {
+            return "😞 You have to specify what items you want to equip.";
+        }
+        const effectName = match.toLowerCase();
+        const chatItemsData = this.getOrCreateChatItemsData(chat);
+
+        const slotsNotFilledWithEffect = equipmentSlots().filter((slot) => {
+            const itemInSlot = chatItemsData.getItemInSlot(user, slot);
+            return itemInSlot === null || String(itemInSlot.metaData).toLowerCase() !== effectName;
+        });
+
+        const inventory = chatItemsData.getOrCreateInventory(user);
+        const itemsToEquip = new Array<Item>();
+
+        slotsNotFilledWithEffect.forEach((slotToFill) => {
+            const itemInInventoryWithEffect = inventory.find((candidateItem) =>
+                candidateItem.prototype.equipmentSlots.some((itemSlot) => itemSlot === slotToFill) &&
+                String(candidateItem.metaData).toLowerCase() === effectName &&
+                !itemsToEquip.flatMap((item) => item.prototype.equipmentSlots)
+                    .some((itemSlot) => candidateItem.prototype.equipmentSlots.includes(itemSlot)) &&
+                candidateItem.prototype.equipmentSlots.every((itemSlot) => slotsNotFilledWithEffect.includes(itemSlot)))
+                || null;
+
+            if (itemInInventoryWithEffect !== null) {
+                itemsToEquip.push(itemInInventoryWithEffect);
+            }
+        });
+
+        if (itemsToEquip.length === 0) {
+            return "😞 You can't equip any more items of that type.";
+        }
+        const equipment = chatItemsData.getOrCreateEquipment(user);
+        const itemsOccupyingDesiredSlots = this.itemsOccupyingDesiredSlots(equipment, itemsToEquip);
+        let equippedText = "";
+        let unequippedText = "";
+
+        itemsOccupyingDesiredSlots.forEach(itemOccupyingDesiredSlot => {
+            chatItemsData.moveToInventory(equipment, itemOccupyingDesiredSlot, 1, inventory);
+            unequippedText += `\nUnequipped ${itemOccupyingDesiredSlot.prettyName()}!`;
+        });
+
+        itemsToEquip.forEach((itemToEquip) => {
+            chatItemsData.moveToInventory(inventory, itemToEquip, 1, equipment);
+            equippedText += `Equipped ${itemToEquip.prettyName()}!\n`;
+        });
+        return equippedText + unequippedText;
     }
 
     /**
@@ -538,10 +594,10 @@ export class Plugin extends AbstractPlugin {
             (emoji) => emoji.emoji) === nodeEmoji.replace(match.toLowerCase(), (emoji) => emoji.emoji));
     }
 
-    private itemsOccupyingDesiredSlots(equipment: Item[], itemPrototype: ItemProtoType): Item[] {
-        return equipment.filter((equippedItem) => {
-            return equippedItem.prototype.equipmentSlots.findIndex((equippedSlot) => itemPrototype.equipmentSlots.includes(equippedSlot)) > -1;
-        });
+    private itemsOccupyingDesiredSlots(equipped: Item[], toEquip: Item[]): Item[] {
+        return equipped.filter((equippedItem) =>
+            equippedItem.prototype.equipmentSlots.some((equippedSlot) =>
+                toEquip.some((toEquipItem) => toEquipItem.prototype.equipmentSlots.includes(equippedSlot))));
     }
 
     private getChatModifier(chat: Chat): number {
