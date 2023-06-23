@@ -18,6 +18,7 @@ export class ItemEffect {
     private static readonly CRIME_COMMITTED = "crimeCommitted";
     private static readonly BREAKOUT_SUCCEEDED = "breakoutSucceeded";
     private static readonly BRIBE = "bribe";
+    private static readonly KILL = "killPlayer";
 
     // Blackjack
     private static readonly BLACKJACK_PLUGIN = "Blackjack";
@@ -61,6 +62,9 @@ export class ItemEffect {
 
         ["Liberator", new ItemEffect("Liberator", ItemEffect.LIFE_PLUGIN, [ItemEffect.BREAKOUT_SUCCEEDED], 0.4,
             "Increases points gained from breaking out players by", 4)],
+
+        ["Hunter", new ItemEffect("Hunter", ItemEffect.LIFE_PLUGIN, [ItemEffect.KILL], -0.1,
+            "Receive", 1, "of the kill cost back after trying to kill a player")],
 
         // Blackjack
 
