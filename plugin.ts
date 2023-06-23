@@ -19,7 +19,7 @@ import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
-import { EquipmentSlot, equipmentSlots } from "./item/equipment-slot";
+import { equipmentSlots } from "./item/equipment-slot";
 
 export class Plugin extends AbstractPlugin {
 
@@ -56,7 +56,7 @@ export class Plugin extends AbstractPlugin {
     private itemPacks = new Array<AbstractItemPack>();
 
     constructor() {
-        super("Items", "1.0.0-alpha");
+        super("Items", "1.0.0");
 
         this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
         this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
