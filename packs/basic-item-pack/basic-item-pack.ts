@@ -31,14 +31,14 @@ export class BasicItemPack extends AbstractItemPack {
      * From AbstractItemPack.
      */
     public onChatInitialisation(chatItemsData: ChatItemsData): void {
-        this.addRandomBasicItems(chatItemsData);
+        // this.addRandomBasicItems(chatItemsData);
     }
 
     /**
      * From AbstractItemPack.
      */
     public OnNightlyUpdate(chatItemsData: ChatItemsData): void {
-        this.addRandomBasicItems(chatItemsData);
+        // this.addRandomBasicItems(chatItemsData);
     }
 
     private addRandomBasicItems(chatItemsData: ChatItemsData): void {
