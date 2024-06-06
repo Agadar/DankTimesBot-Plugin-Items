@@ -48,14 +48,14 @@ export class Item {
     }
 
     public toJSON(): { prototypeId: number, stackSize: number, rank: number, metaData: any } {
-        return { prototypeId: this.prototype.id, stackSize: this.stackSize, rank: this.rank, metaData: this.metaData };
+        return { prototypeId: this.prototype.id, stackSize: this.stackSize, rank: this.getCorrectedRank(), metaData: this.metaData };
     }
 
     /**
      * Gets this item's name, e.g. 'Scroll of Ingenuity II'.
      */
     public get name(): string {
-        return this.prototype.nameForRank(this.rank, this.metaData);
+        return this.prototype.nameForRank(this.getCorrectedRank(), this.metaData);
     }
 
     public get isEquippable(): boolean {
@@ -66,14 +66,14 @@ export class Item {
      * Pretty prints this item's name including font style and emoji.
      */
     public prettyName(): string {
-        return this.prototype.prettyName(this.rank, this.metaData);
+        return this.prototype.prettyName(this.getCorrectedRank(), this.metaData);
     }
 
     /**
      * Pretty prints this item's name, tags, description etc.
      */
     public prettyPrint(modifier: number): string {
-        return this.prototype.prettyPrint(modifier, this.rank, this.metaData);
+        return this.prototype.prettyPrint(modifier, this.getCorrectedRank(), this.metaData);
     }
 
     public getMaxRank(): number {
@@ -81,23 +81,26 @@ export class Item {
     }
 
     public getBuyPrice(modifier: number): number {
-        return this.prototype.getBuyPrice(modifier, this.rank, this.metaData);
+        return this.prototype.getBuyPrice(modifier, this.getCorrectedRank(), this.metaData);
     }
 
     public getSellPrice(modifier: number): number {
-        return this.prototype.getSellPrice(modifier, this.rank, this.metaData);
+        return this.prototype.getSellPrice(modifier, this.getCorrectedRank(), this.metaData);
     }
 
     public getUpgradePrice(modifier: number): number {
-        return this.prototype.getUpgradePrice(modifier, this.rank, this.metaData);
+        return this.prototype.getUpgradePrice(modifier, this.getCorrectedRank(), this.metaData);
     }
 
     public onUse(chat: Chat, user: User, msg: Message, match: string): { msg: string, shouldConsume: boolean } {
-        return this.prototype.onUse(chat, user, msg, match, this.rank, this.metaData);
+        return this.prototype.onUse(chat, user, msg, match, this.getCorrectedRank(), this.metaData);
     }
 
     public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
-        const rank = Math.min(this.rank, this.getMaxRank());
-        return this.prototype.onPreUserScoreChange(event, rank, this.metaData);
+        return this.prototype.onPreUserScoreChange(event, this.getCorrectedRank(), this.metaData);
+    }
+
+    private getCorrectedRank(): number {
+        return Math.min(this.rank, this.getMaxRank());
     }
 }
