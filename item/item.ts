@@ -97,6 +97,7 @@ export class Item {
     }
 
     public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
-        return this.prototype.onPreUserScoreChange(event, this.rank, this.metaData);
+        const rank = Math.min(this.rank, this.getMaxRank());
+        return this.prototype.onPreUserScoreChange(event, rank, this.metaData);
     }
 }
