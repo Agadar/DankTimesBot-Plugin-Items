@@ -52,6 +52,10 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
         this.onChatInitialisation(chatItemsData);
     }
 
+    public generateAnyRandomItem(): Item {
+        return this.generateRandomItem(this.rpgPrototypes.allPrototypes);
+    }
+
     private addRandomEquipment(chatItemsData: ChatItemsData) {
         const random = Math.random();
 
@@ -69,13 +73,16 @@ export class RPGEquipmentItemPack extends AbstractItemPack {
     }
 
     private addRandomEquipmentOfType(prototypes: ItemProtoType[], chatItemsData: ChatItemsData): void {
+        chatItemsData.addToInventory(chatItemsData.shopInventory, this.generateRandomItem(prototypes));
+    }
+
+    private generateRandomItem(prototypes : ItemProtoType[]): Item {
         const randomPrototypeIndex = Math.floor(Math.random() * prototypes.length);
         const prototype = prototypes[randomPrototypeIndex];
 
         const randomEffectIndex = Math.floor(Math.random() * ItemEffect.ALL.size);
         const effect = Array.from(ItemEffect.ALL)[randomEffectIndex][1];
 
-        const item = new Item(prototype, 1, 1, effect.name);
-        chatItemsData.addToInventory(chatItemsData.shopInventory, item);
+        return new Item(prototype, 1, 1, effect.name);
     }
 }

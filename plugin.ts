@@ -20,6 +20,7 @@ import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
 import { equipmentSlots } from "./item/equipment-slot";
+import { PostUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/post-user-score-changed-event-arguments";
 
 export class Plugin extends AbstractPlugin {
 
@@ -46,8 +47,9 @@ export class Plugin extends AbstractPlugin {
     // Events this plugin listens to
     private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
 
-    // Misc.
+    // Settings
     private static readonly ITEMS_PRICES_MULTIPLIER_SETTING = "items.prices.multiplier";
+    private static readonly RANDOM_ITEM_CHANCE = "items.random.chance";
 
     private readonly fileIOHelper = new FileIOHelper(this.loadDataFromFile.bind(this), this.saveDataToFile.bind(this));
 
@@ -61,6 +63,7 @@ export class Plugin extends AbstractPlugin {
         this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
         this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
         this.subscribeToPluginEvent(PluginEvent.PreUserScoreChange, this.onPreUserScoreChange.bind(this));
+        this.subscribeToPluginEvent(PluginEvent.PostUserScoreChange, this.onPostUserScoreChang.bind(this));
         this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
         this.subscribeToPluginEvent(PluginEvent.BotShutdown, () => this.fileIOHelper.persistData(this.chatsItemsData));
         this.subscribeToPluginEvent(PluginEvent.Custom, this.addItemPack.bind(this), "*", Plugin.ADD_ITEM_PACK_REASON);
@@ -105,7 +108,22 @@ export class Plugin extends AbstractPlugin {
                     throw new RangeError("The value must be greater than 0!");
                 }
             });
-        return [priceMultiplierSetting];
+        const randomItemChance = new ChatSettingTemplate(Plugin.RANDOM_ITEM_CHANCE,
+            "The chance in percentages to earn a random item after scoring a dank time", 2,
+            original => {
+                const asNumber = Number(original);
+                if (isNaN(asNumber)) {
+                    throw new RangeError("The value must be a number!");
+                }
+                return asNumber;
+            },
+            value => {
+                if (value < 0 || value > 100) {
+                    throw new RangeError("The value must be between 0 and 100!");
+                }
+            }
+        )
+        return [priceMultiplierSetting, randomItemChance];
     }
 
     /**
@@ -623,6 +641,23 @@ export class Plugin extends AbstractPlugin {
         equipment.forEach((item) => {
             item.onPreUserScoreChange(event);
         });
+    }
+
+    private onPostUserScoreChang(event: PostUserScoreChangedEventArguments): void {
+        if (event.nameOfOriginPlugin === AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME &&
+            (event.reason === AlterUserScoreArgs.NORMAL_DANKTIME_REASON || event.reason === AlterUserScoreArgs.RANDOM_DANKTIME_REASON) &&
+            Math.random() <= event.chat.getSetting<number>(Plugin.RANDOM_ITEM_CHANCE) / 100) {
+
+            // Slightly dirty, but good enough for now.
+            const rpgPack = this.itemPacks.find(item => item.name === "RpgEquipmentItemPack") as RPGEquipmentItemPack;
+            const item = rpgPack.generateAnyRandomItem();
+            const chatData = this.getOrCreateChatItemsData(event.chat);
+            const inventory = chatData.getOrCreateInventory(event.user);
+            chatData.addToInventory(inventory, item);
+            this.telegramBotClient.sendMessage(event.chat.id,
+                `While fighting over the dank time, @${event.user.name} found an abandoned ${item.prettyName()} in the bushes!`,
+                { parse_mode: "HTML" });
+        }
     }
 
     private onHourlyTick(eventArgs: EmptyEventArguments): void {
