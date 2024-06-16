@@ -572,7 +572,7 @@ export class Plugin extends AbstractPlugin {
         if (!data) {
             data = new ChatItemsData(chat.id);
             this.chatsItemsData.set(chat.id, data);
-            this.itemPacks.forEach((pack) => pack.onChatInitialisation(data));
+            this.itemPacks.forEach((pack) => pack.onChatInitialisation(data!));
         }
         return data;
     }
@@ -609,7 +609,7 @@ export class Plugin extends AbstractPlugin {
             return inventory[index];
         }
         return inventory.find((item) => nodeEmoji.replace(item.name.toLowerCase(),
-            (emoji) => emoji.emoji) === nodeEmoji.replace(match.toLowerCase(), (emoji) => emoji.emoji));
+            (emoji) => emoji.emoji) === nodeEmoji.replace(match.toLowerCase(), (emoji) => emoji.emoji)) || null;
     }
 
     private itemsOccupyingDesiredSlots(equipped: Item[], toEquip: Item[]): Item[] {
@@ -671,7 +671,7 @@ export class Plugin extends AbstractPlugin {
 
                 } else {
                     const chatData = this.chatsItemsData.get(chatId);
-                    this.itemPacks.forEach((pack) => pack.OnHourlyTick(chatData));
+                    this.itemPacks.forEach((pack) => pack.OnHourlyTick(chatData!));
                 }
             } catch (error) {
                 console.error(`Error while performing hourly tick for chat ${chatId} for plugin ${this.name}: ${error}`);
