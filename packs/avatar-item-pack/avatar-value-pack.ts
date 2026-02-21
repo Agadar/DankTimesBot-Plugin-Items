@@ -1,4 +1,4 @@
-import * as nodeEmoji from "node-emoji";
+import * as emojilib from "emojilib";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../../src/chat/chat";
 import { User } from "../../../../src/chat/user/user";
@@ -12,7 +12,7 @@ export class AvatarValuePack extends ItemProtoType {
     }
 
     public override onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, metaData: any = null): { msg: string, shouldConsume: boolean } {
-        const allEmojis: string[] = Object.values(nodeEmoji.emoji);
+        const allEmojis: string[] = Object.entries(emojilib).map(([emoji, names]) => emoji);
         const noncollectedAvatars = allEmojis.filter((emoji) => !user.availableAvatars.includes(emoji));
 
         if (noncollectedAvatars.length < 1) {

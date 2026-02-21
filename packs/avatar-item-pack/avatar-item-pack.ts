@@ -1,4 +1,4 @@
-import * as nodeEmoji from "node-emoji";
+import * as emojilib from "emojilib";
 import { AbstractItemPack } from "../../abstract-item-pack";
 import { ChatItemsData } from "../../chat/chat-items-data";
 import { Item } from "../../item/item";
@@ -64,7 +64,9 @@ export class AvatarItemPack extends AbstractItemPack {
     }
 
     private generateRandomAvatar(): Item {
-        const avatar = nodeEmoji.random().emoji;
-        return new Item(this.avatarProtoType, 1, 1, avatar);
+        const allEmojis: string[] = Object.entries(emojilib).map(([emoji, names]) => emoji);
+        const randomIndex = Math.floor(Math.random() * allEmojis.length);
+        const randomAvatar = allEmojis[randomIndex];
+        return new Item(this.avatarProtoType, 1, 1, randomAvatar);
     }
 }

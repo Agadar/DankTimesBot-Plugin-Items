@@ -1,4 +1,4 @@
-import * as nodeEmoji from "node-emoji";
+import * as emojilib from "emojilib";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../../src/chat/chat";
 import { User } from "../../../../src/chat/user/user";
@@ -14,9 +14,10 @@ export class Avatar extends ItemProtoType {
     }
 
     public override getPrettyPrintsOfMatchingNames(input: string, chatModifier: number): string[] {
-        const match = nodeEmoji.replace(input, (emoji) => emoji.emoji).match(this.avatarNamePattern);
+        const match = input.match(this.avatarNamePattern);
+        const allEmojis: string[] = Object.entries(emojilib).map(([emoji, names]) => emoji);
 
-        if (!match || !match[1] || !nodeEmoji.hasEmoji(match[1])) {
+        if (!match || !match[1] || !allEmojis.find((e) => e.includes(match[1]))) {
             return [];
         }
         return [this.prettyPrint(chatModifier, 1, match[1])];

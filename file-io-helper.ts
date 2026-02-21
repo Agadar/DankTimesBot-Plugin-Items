@@ -35,7 +35,7 @@ export class FileIOHelper {
     }
 
     private parseRawItems(rawItems?: any): Item[] {
-        return rawItems?.map((raw) => {
+        return rawItems?.map((raw: any) => {
             const prototype = new PlaceholderItemPrototype(raw.prototypeId);
             return new Item(prototype, raw.stackSize, raw.rank ?? 1, raw.metaData);
         }) ?? [];
@@ -43,7 +43,7 @@ export class FileIOHelper {
 
     private parseRawInventoryManager(inventoryManager?: any): ChatInventoryManager {
         const inventories = new Map<number, Item[]>();
-        inventoryManager?.forEach((raw) => {
+        inventoryManager?.forEach((raw: any) => {
             const items = this.parseRawItems(raw.inventory);
             inventories.set(raw.userId, items);
         });
@@ -52,7 +52,7 @@ export class FileIOHelper {
 
     private parseRawEquipmentManager(equipmentManager?: any): ChatEquipmentManager {
         const equipments = new Map<number, Item[]>();
-        equipmentManager?.forEach((raw) => {
+        equipmentManager?.forEach((raw: any) => {
             const items = this.parseRawItems(raw.equipment);
             equipments.set(raw.userId, items);
         });
