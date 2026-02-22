@@ -1,8 +1,8 @@
-import * as emojilib from "emojilib";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../../src/chat/chat";
 import { User } from "../../../../src/chat/user/user";
 import { ItemProtoType } from "../../item/item-prototype";
+import { ALL_EMOJIS } from "../../../../src/util/emojis";
 
 export class Avatar extends ItemProtoType {
 
@@ -15,9 +15,8 @@ export class Avatar extends ItemProtoType {
 
     public override getPrettyPrintsOfMatchingNames(input: string, chatModifier: number): string[] {
         const match = input.match(this.avatarNamePattern);
-        const allEmojis: string[] = Object.entries(emojilib).map(([emoji, names]) => emoji);
 
-        if (!match || !match[1] || !allEmojis.find((e) => e.includes(match[1]))) {
+        if (!match || !match[1] || !ALL_EMOJIS.find((e) => e.includes(match[1]))) {
             return [];
         }
         return [this.prettyPrint(chatModifier, 1, match[1])];

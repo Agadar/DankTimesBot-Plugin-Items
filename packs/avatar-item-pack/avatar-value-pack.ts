@@ -1,8 +1,8 @@
-import * as emojilib from "emojilib";
 import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../../src/chat/chat";
 import { User } from "../../../../src/chat/user/user";
 import { ItemProtoType } from "../../item/item-prototype";
+import { ALL_EMOJIS } from "../../../../src/util/emojis";
 
 export class AvatarValuePack extends ItemProtoType {
 
@@ -12,8 +12,7 @@ export class AvatarValuePack extends ItemProtoType {
     }
 
     public override onUse(chat: Chat, user: User, msg: Message, match: string, rank: number, metaData: any = null): { msg: string, shouldConsume: boolean } {
-        const allEmojis: string[] = Object.entries(emojilib).map(([emoji, names]) => emoji);
-        const noncollectedAvatars = allEmojis.filter((emoji) => !user.availableAvatars.includes(emoji));
+        const noncollectedAvatars = ALL_EMOJIS.filter((emoji) => !user.availableAvatars.includes(emoji));
 
         if (noncollectedAvatars.length < 1) {
             return { msg: "😮 You already have all avatars available!", shouldConsume: false };
