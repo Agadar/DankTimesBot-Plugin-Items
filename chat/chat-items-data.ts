@@ -7,6 +7,8 @@ import { ChatInventoryManager } from "./chat-inventory-manager";
 
 export class ChatItemsData {
 
+    private static readonly PAGE_SIZE = 10; // Max number of items per pagination page
+
     public lastOpenedInventory: Item[] = [];
 
     constructor(
@@ -14,6 +16,22 @@ export class ChatItemsData {
         private readonly inventoryManager = new ChatInventoryManager(),
         private readonly equipmentManager = new ChatEquipmentManager(),
         public readonly shopInventory = new Array<Item>()) { }
+
+    /**
+     * Gets a paginated view of a given inventory.
+     * @param inventory The inventory to paginate.
+     * @param pageNr The page number, starting at 1. Will be parsed and normalized.
+     * @returns The paginated inventory, the index of the first item in the unpaginated inventory, the current page nr, and the maximum
+     * number of pages available.
+     */
+    public static getPaginatedInventory(inventory: Item[], pageText: string): { items: Item[], indexStart: number, currentPage: number, maxPages: number } {
+        const maxPages = Math.max(Math.ceil(inventory.length / ChatItemsData.PAGE_SIZE), 1);
+        let currentPage = Number(pageText);
+        currentPage = isNaN(currentPage) || currentPage < 1 ? 1 : currentPage > maxPages ? maxPages : currentPage;
+        const indexStart = ChatItemsData.PAGE_SIZE * (currentPage - 1);
+        const items = inventory.slice(indexStart, indexStart + ChatItemsData.PAGE_SIZE);
+        return { items, indexStart, currentPage, maxPages };
+    }
 
     public getOrCreateInventory(user: User): Item[] {
         return this.inventoryManager.getOrCreateInventory(user);
@@ -35,7 +53,7 @@ export class ChatItemsData {
     }
 
     public addToInventory(to: Item[], item: Item) {
-        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype 
+        const itemInTargetInventory = to.find((toFind) => toFind.prototype === item.prototype
             && toFind.rank === item.rank && toFind.metaData === item.metaData);
 
         if (itemInTargetInventory) {

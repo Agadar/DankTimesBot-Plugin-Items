@@ -57,7 +57,7 @@ export class Plugin extends AbstractPlugin {
     private itemPacks = new Array<AbstractItemPack>();
 
     constructor() {
-        super("Items", "1.0.0");
+        super("Items", "1.1.0-alpha");
 
         this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
         this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
@@ -155,11 +155,11 @@ export class Plugin extends AbstractPlugin {
         if (inventory.length === 0) {
             return "🎒 Your inventory is empty.";
         }
-
-        let index = 0;
+        const paginated = ChatItemsData.getPaginatedInventory(inventory, match);
         let inventoryStr = "Your inventory contains the following items:\n";
-        inventory.forEach((item) => {
-            inventoryStr += `\n[${index++}] ${item.prettyName()}`;
+
+        paginated.items.forEach((item) => {
+            inventoryStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
             if (item.stackSize > 1) {
                 inventoryStr += ` (<i>${item.stackSize}</i>)`;
             }
@@ -171,7 +171,7 @@ export class Plugin extends AbstractPlugin {
                 }
             }
         });
-        return inventoryStr;
+        return inventoryStr + this.appendPageInfo(paginated.currentPage, paginated.maxPages);
     }
 
     /**
@@ -185,17 +185,17 @@ export class Plugin extends AbstractPlugin {
         if (equipment.length === 0) {
             return "👐 You have nothing equipped.";
         }
-
-        let index = 0;
+        const paginated = ChatItemsData.getPaginatedInventory(equipment, match);
         let equipmentStr = "You have the following items equipped:\n";
-        equipment.forEach((item) => {
-            equipmentStr += `\n[${index++}] ${item.prettyName()}`;
+
+        paginated.items.forEach((item) => {
+            equipmentStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
             if (item.prototype.tradeable) {
                 const price = item.getSellPrice(this.getChatModifier(chat));
                 equipmentStr += ` worth <i>${price}</i> points`;
             }
         });
-        return equipmentStr;
+        return equipmentStr + this.appendPageInfo(paginated.currentPage, paginated.maxPages);
     }
 
     /**
@@ -360,10 +360,11 @@ export class Plugin extends AbstractPlugin {
         if (chatItemsData.shopInventory.length === 0) {
             return "🛒 The shop is all out of stock.";
         }
-        let index = 0;
-        let inventoryStr = "The shop has the following item(s) for sale:\n";
-        chatItemsData.shopInventory.forEach((item) => {
-            inventoryStr += `\n[${index++}] ${item.prettyName()}`;
+        const paginated = ChatItemsData.getPaginatedInventory(chatItemsData.shopInventory, match);
+        let inventoryStr = `The shop has the following item(s) for sale:\n`;
+
+        paginated.items.forEach((item) => {
+            inventoryStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
             if (item.stackSize > 1) {
                 inventoryStr += ` (<i>${item.stackSize}</i>)`;
             }
@@ -373,7 +374,7 @@ export class Plugin extends AbstractPlugin {
                 inventoryStr += " each";
             }
         });
-        return inventoryStr;
+        return inventoryStr + this.appendPageInfo(paginated.currentPage, paginated.maxPages);
     }
 
     /**
@@ -617,6 +618,10 @@ export class Plugin extends AbstractPlugin {
 
     private getChatModifier(chat: Chat): number {
         return chat.getSetting<number>(Plugin.ITEMS_PRICES_MULTIPLIER_SETTING) ?? 1;
+    }
+
+    private appendPageInfo(currentPage: number, maxPages: number): string {
+        return maxPages > 1 ? `\n\n<i>( Page ${currentPage} of ${maxPages} )</i>` : "";
     }
 
     private onBotStartup(eventArgs: EmptyEventArguments): void {
