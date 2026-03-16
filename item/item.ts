@@ -2,7 +2,10 @@ import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
 import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
+
 import { ItemProtoType } from "./item-prototype";
+
+import { LifeActionEventData } from "../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 
 /**
  * Instance of an item, indicating an amount and pointing to the item prototype
@@ -98,6 +101,10 @@ export class Item {
 
     public onPreUserScoreChange(event: PreUserScoreChangedEventArguments): void {
         return this.prototype.onPreUserScoreChange(event, this.getCorrectedRank(), this.metaData);
+    }
+
+    public onLifeAction(eventArgs: LifeActionEventData, isTarget: boolean): void {
+        return this.prototype.onLifeAction(eventArgs, isTarget, this.getCorrectedRank(), this.metaData);
     }
 
     private getCorrectedRank(): number {

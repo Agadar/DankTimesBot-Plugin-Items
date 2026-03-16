@@ -2,7 +2,10 @@ import { Message } from "node-telegram-bot-api";
 import { Chat } from "../../../src/chat/chat";
 import { User } from "../../../src/chat/user/user";
 import { PreUserScoreChangedEventArguments } from "../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
+
 import { EquipmentSlot } from "./equipment-slot";
+
+import { LifeActionEventData } from "../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 
 /**
  * Prototype for items. Instantiate this or a custom subclass of this to create a prototype with
@@ -175,6 +178,13 @@ export class ItemProtoType {
      * No behavior by default. Override for custom behavior.
      */
     public onPreUserScoreChange(event: PreUserScoreChangedEventArguments, rank: number, metaData?: any): void {
+        // No behavior by default.
+    }
+
+    /**
+     * No behavior by default. Override for custom behavior.
+     */
+    public onLifeAction(eventData: LifeActionEventData, isTarget: boolean, rank: number, metaData?: any): void {
         // No behavior by default.
     }
 

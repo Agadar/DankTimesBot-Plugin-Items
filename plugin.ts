@@ -9,6 +9,9 @@ import { EmptyEventArguments } from "../../src/plugin-host/plugin-events/event-a
 import { PreUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
 import { PluginEvent } from "../../src/plugin-host/plugin-events/plugin-event-types";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
+import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
+import { PostUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/post-user-score-changed-event-arguments";
+
 import { AbstractItemPack } from "./abstract-item-pack";
 import { ChatItemsData } from "./chat/chat-items-data";
 import { FileIOHelper } from "./file-io-helper";
@@ -17,9 +20,9 @@ import { ItemProtoType } from "./item/item-prototype";
 import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
-import { ChatResetEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/chat-reset-event-arguments";
 import { equipmentSlots } from "./item/equipment-slot";
-import { PostUserScoreChangedEventArguments } from "../../src/plugin-host/plugin-events/event-arguments/post-user-score-changed-event-arguments";
+
+import { LifeActionEventData } from "../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 
 export class Plugin extends AbstractPlugin {
 
@@ -45,6 +48,8 @@ export class Plugin extends AbstractPlugin {
 
     // Events this plugin listens to
     private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
+    private static readonly LIFE_PLUGIN_NAME = "Life";
+    private static readonly ON_LIFE_ACTION_REASON = "life.on-life-action";
 
     // Settings
     private static readonly ITEMS_PRICES_MULTIPLIER_SETTING = "items.prices.multiplier";
@@ -65,8 +70,10 @@ export class Plugin extends AbstractPlugin {
         this.subscribeToPluginEvent(PluginEvent.PostUserScoreChange, this.onPostUserScoreChang.bind(this));
         this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
         this.subscribeToPluginEvent(PluginEvent.BotShutdown, () => this.fileIOHelper.persistData(this.chatsItemsData));
-        this.subscribeToPluginEvent(PluginEvent.Custom, this.addItemPack.bind(this), "*", Plugin.ADD_ITEM_PACK_REASON);
         this.subscribeToPluginEvent(PluginEvent.ChatReset, this.onChatReset.bind(this));
+
+        this.subscribeToPluginEvent(PluginEvent.Custom, this.addItemPack.bind(this), "*", Plugin.ADD_ITEM_PACK_REASON);
+        this.subscribeToPluginEvent(PluginEvent.Custom, this.onLifeAction.bind(this), Plugin.LIFE_PLUGIN_NAME, Plugin.ON_LIFE_ACTION_REASON);
     }
 
     /**
@@ -696,6 +703,24 @@ export class Plugin extends AbstractPlugin {
         } else {
             console.error(`Failed to add item pack: ${JSON.stringify(eventArgs.eventData)}`);
         }
+    }
+
+    private onLifeAction(eventArgs: CustomEventArguments): void {
+        const args = eventArgs.eventData as LifeActionEventData;
+        const chat = this.getOrCreateChatItemsData(args.chat);
+
+        const equipment = chat.getOrCreateEquipment(args.user);
+        equipment.forEach((item) => {
+            item.onLifeAction(args, false);
+        });
+
+        if (args.user === args.targetUser) {
+            return;
+        }
+        const targetEquipment = chat.getOrCreateEquipment(args.targetUser);
+        targetEquipment.forEach((item) => {
+            item.onLifeAction(args, true);
+        });
     }
 
     private onChatReset(eventArgs: ChatResetEventArguments): void {

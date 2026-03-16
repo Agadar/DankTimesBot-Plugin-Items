@@ -1,7 +1,12 @@
 import { PreUserScoreChangedEventArguments } from "../../../../src/plugin-host/plugin-events/event-arguments/pre-user-score-changed-event-arguments";
+
 import { ItemProtoType } from "../../item/item-prototype";
 import { ItemAesthetics } from "./item-aesthetics";
 import { ItemEffect } from "./item-effect";
+import { ItemType } from "./item-type";
+
+import { LifeActionEventData } from "../../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
+import { LifeAction } from "../../../DankTimesBot-Plugin-Life/model/LifeAction";
 
 /**
  * Old user score change equipment, to be replaced with the new version.
@@ -37,7 +42,7 @@ export class UserScoreChangeEquipment extends ItemProtoType {
                 const name = `${this.aesthetics.name} of the ${effectName} ${ItemProtoType.toRoman(rank)}`;
                 allNames.push({ name: name, rank: rank, effectName: effectName });
             }
-        });      
+        });
         return allNames
             .filter(nameAndRank => nameAndRank.name.toLowerCase() === input.toLowerCase())
             .map(nameAndRank => this.prettyPrint(chatModifier, nameAndRank.rank, nameAndRank.effectName));
@@ -62,11 +67,20 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         }
         const baseModifierForRank = this.baseModifierForRank(rank, effect);
         const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
+        let description = `${effect.description} ${modifierAsPercentage}%`;
 
         if (effect.postDescription) {
-            return `${effect.description} ${modifierAsPercentage}% ${effect.postDescription}`;
+            description += ` ${effect.postDescription}`;
         }
-        return `${effect.description} ${modifierAsPercentage}%`;
+        const killOdds = this.aesthetics.itemType.killOdds;
+
+        if (killOdds > 0) {
+            description += `\nIncreases the chance to kill a player by an additional ${killOdds * 100}%`;
+
+        } else if (killOdds < 0) {
+            description += `\nReduces the chance to be killed by a player by an additional ${Math.abs(killOdds) * 100}%`;
+        }
+        return description;
     }
 
     public override getMaxRank(metaData?: any): number {
@@ -88,6 +102,16 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         } else if ((effect.plugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === effect.plugin) &&
             (effect.reasons.includes(UserScoreChangeEquipment.ANY) || effect.reasons.includes(event.reason))) {
             event.changeInScore *= (1 + this.baseModifierForRank(rank, effect));
+        }
+    }
+
+    public override onLifeAction(eventData: LifeActionEventData, isTarget: boolean, rank: number, metaData?: any): void {
+        if (eventData.action !== LifeAction.KILL) {
+            return;
+        }
+        if ((isTarget && this.aesthetics.itemType === ItemType.OFF_HAND) ||
+            (!isTarget && (this.aesthetics.itemType === ItemType.TWO_HANDED || this.aesthetics.itemType === ItemType.ONE_HANDED))) {
+            eventData.odds += this.aesthetics.itemType.killOdds;
         }
     }
 
