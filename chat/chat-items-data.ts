@@ -7,7 +7,7 @@ import { ChatInventoryManager } from "./chat-inventory-manager";
 
 export class ChatItemsData {
 
-    private static readonly PAGE_SIZE = 10; // Max number of items per pagination page
+    private static readonly PAGE_SIZE = 15; // Max number of items per pagination page
 
     public lastOpenedInventory: Item[] = [];
 

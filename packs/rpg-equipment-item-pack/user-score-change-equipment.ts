@@ -8,9 +8,6 @@ import { ItemType } from "./item-type";
 import { LifeActionEventData } from "../../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 import { LifeAction } from "../../../DankTimesBot-Plugin-Life/model/LifeAction";
 
-/**
- * Old user score change equipment, to be replaced with the new version.
- */
 export class UserScoreChangeEquipment extends ItemProtoType {
 
     public static readonly ANY = "*";
@@ -21,7 +18,7 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         super(
             aesthetics.id,
             "",
-            UserScoreChangeEquipment.pricemodifier * aesthetics.itemType.itemTypeModifier,
+            UserScoreChangeEquipment.pricemodifier * aesthetics.itemType.userScoreChangeModifier,
             0.5,
             aesthetics.icon,
             "",
@@ -65,20 +62,38 @@ export class UserScoreChangeEquipment extends ItemProtoType {
             this.logMetaDataError(metaData);
             return super.getDescription(rank, metaData);
         }
-        const baseModifierForRank = this.baseModifierForRank(rank, effect);
-        const modifierAsPercentage = Math.abs(Math.round(baseModifierForRank * 1000) / 10);
-        let description = `${effect.description} ${modifierAsPercentage}%`;
+        const innateKillOdds = this.aesthetics.itemType.innateKillOdds;
+        let description = "";
+        let prependNewline = false;
+        let appendInnateKillOdds = (effect.killOdds >= 0 && innateKillOdds < 0) || (effect.killOdds <= 0 && innateKillOdds > 0);
 
-        if (effect.postDescription) {
-            description += ` ${effect.postDescription}`;
+        if (effect.userScoreChange !== 0) {
+            const userScoreChangeForRank = this.userScoreChangeForRank(rank, effect);
+            description += this.describeEffect(effect, userScoreChangeForRank);
+            prependNewline = true;
         }
-        const killOdds = this.aesthetics.itemType.killOdds;
+        if (effect.killOdds !== 0) {
+            if (prependNewline) {
+                description += "\n";
+            }
+            let effectKillOdds = this.aesthetics.itemType.killOddsModifier * effect.killOdds;
 
-        if (killOdds > 0) {
-            description += `\nIncreases the chance to kill a player by an additional ${killOdds * 100}%`;
+            if (!appendInnateKillOdds) {
+                effectKillOdds += innateKillOdds;
+            }
+            description += this.describeEffect(effect, effectKillOdds);
+            prependNewline = true;
+        }
+        if (appendInnateKillOdds) {
+            if (prependNewline) {
+                description += "\n";
+            }
+            if (innateKillOdds > 0) {
+                description += `Increases the chance to kill a player by an additional ${innateKillOdds * 100}%`;
 
-        } else if (killOdds < 0) {
-            description += `\nReduces the chance to be killed by a player by an additional ${Math.abs(killOdds) * 100}%`;
+            } else if (innateKillOdds < 0) {
+                description += `Reduces the chance to be killed by a player by an additional ${Math.abs(innateKillOdds) * 100}%`;
+            }
         }
         return description;
     }
@@ -98,10 +113,14 @@ export class UserScoreChangeEquipment extends ItemProtoType {
 
         if (!effect) {
             this.logMetaDataError(metaData);
-
-        } else if ((effect.plugin === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === effect.plugin) &&
-            (effect.reasons.includes(UserScoreChangeEquipment.ANY) || effect.reasons.includes(event.reason))) {
-            event.changeInScore *= (1 + this.baseModifierForRank(rank, effect));
+            return;
+        }
+        if (effect.userScoreChange === 0) {
+            return;
+        }
+        if ((effect.userScoreChangePluginName === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === effect.userScoreChangePluginName) &&
+            (effect.userScoreChangePluginReasons.includes(UserScoreChangeEquipment.ANY) || effect.userScoreChangePluginReasons.includes(event.reason))) {
+            event.changeInScore *= (1 + this.userScoreChangeForRank(rank, effect));
         }
     }
 
@@ -109,15 +128,33 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         if (eventData.action !== LifeAction.KILL) {
             return;
         }
-        if ((isTarget && this.aesthetics.itemType === ItemType.OFF_HAND) ||
-            (!isTarget && (this.aesthetics.itemType === ItemType.TWO_HANDED || this.aesthetics.itemType === ItemType.ONE_HANDED))) {
-            eventData.odds += this.aesthetics.itemType.killOdds;
+        if ((isTarget && this.aesthetics.itemType.innateKillOdds < 0) || (!isTarget && this.aesthetics.itemType.innateKillOdds > 0)) {
+            eventData.odds += this.aesthetics.itemType.innateKillOdds;
+        }
+        const effect = ItemEffect.ALL.get(metaData);
+
+        if (!effect) {
+            this.logMetaDataError(metaData);
+            return;
+        }
+        if ((isTarget && effect.killOdds < 0) || (!isTarget && effect.killOdds > 0)) {
+            eventData.odds += this.aesthetics.itemType.killOddsModifier * effect.killOdds;
         }
     }
 
-    private baseModifierForRank(rank: number, effect: ItemEffect): number {
-        const modifier = this.aesthetics.itemType.itemTypeModifier * effect.modifier;
+    private userScoreChangeForRank(rank: number, effect: ItemEffect): number {
+        const modifier = this.aesthetics.itemType.userScoreChangeModifier * effect.userScoreChange;
         return modifier + modifier * 0.5 * (rank - 1);
+    }
+
+    private describeEffect(effect: ItemEffect, delta: number) {
+        const modifierAsPercentage = Math.abs(Math.round(delta * 1000) / 10);
+        let description = `${effect.description} ${modifierAsPercentage}%`;
+
+        if (effect.postDescription) {
+            description += ` ${effect.postDescription}`;
+        }
+        return description;
     }
 
     private logMetaDataError(metaData: any): void {

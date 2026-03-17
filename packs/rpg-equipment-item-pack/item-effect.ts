@@ -30,8 +30,6 @@ export class ItemEffect {
     private static readonly HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT = "horserace.2ndplace";
     private static readonly HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT = "horserace.3rdplace";
     private static readonly HORSERACE_WIN_BET_SCORE_EVENT = "horserace.winbet";
-    private static readonly HORSERACE_APPLY_DRUGS_SCORE_EVENT = "horserace.horsedope";
-    private static readonly HORSERACE_CHEATER_CAUGHT_SCORE_EVENT = "horserace.cheatercaught";
 
     public static readonly ALL = new Map<string, ItemEffect>([
 
@@ -39,11 +37,11 @@ export class ItemEffect {
 
         ["Devout", new ItemEffect("Devout", AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             [AlterUserScoreArgs.NORMAL_DANKTIME_REASON], 0.2,
-            "Increases normal dank time points received by", 4)],
+            "Increases normal dank time points received by", 0, 4)],
 
         ["Sentinel", new ItemEffect("Sentinel", AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             [AlterUserScoreArgs.RANDOM_DANKTIME_REASON], 0.25,
-            "Increases random dank time points received by", 4)],
+            "Increases random dank time points received by", 0, 4)],
 
         ["Eternal", new ItemEffect("Eternal", AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME,
             [AlterUserScoreArgs.HARDCOREMODE_PUNISHMENT_REASON], -0.5,
@@ -52,19 +50,23 @@ export class ItemEffect {
         // Life
 
         ["Pious", new ItemEffect("Pious", ItemEffect.LIFE_PLUGIN, [ItemEffect.WORK_COMPLETED], 0.3,
-            "Increases points gained from working by", 4)],
+            "Increases points gained from working by", 0, 4)],
 
         ["Mastermind", new ItemEffect("Mastermind", ItemEffect.LIFE_PLUGIN, [ItemEffect.CRIME_COMMITTED], 0.25,
-            "Increases points gained from committing crimes by", 4)],
+            "Increases points gained from committing crimes by", 0, 4)],
 
         ["Succubus", new ItemEffect("Succubus", ItemEffect.LIFE_PLUGIN, [ItemEffect.BRIBE], -0.25,
             "Reduces the cost of bribes by")],
 
         ["Liberator", new ItemEffect("Liberator", ItemEffect.LIFE_PLUGIN, [ItemEffect.BREAKOUT_SUCCEEDED], 0.4,
-            "Increases points gained from breaking out players by", 4)],
+            "Increases points gained from breaking out players by", 0, 4)],
 
         ["Hunter", new ItemEffect("Hunter", ItemEffect.LIFE_PLUGIN, [ItemEffect.KILL], -0.1,
-            "Receive", 1, "of the kill cost back after trying to kill a player")],
+            "Receive", 0, 1, "of the kill cost back after trying to kill a player")],
+
+        ["Slayer", new ItemEffect("Slayer", "", [], 0, "Increases the chance to kill a player by an additional", 0.1)],
+
+        ["Unrelenting", new ItemEffect("Unrelenting", "", [], 0, "Reduces the chance to be killed by a player by an additional", -0.1)],
 
         // Blackjack
 
@@ -102,23 +104,24 @@ export class ItemEffect {
             ItemEffect.HORSERACE_2ND_PLACE_WINNING_SCORE_EVENT,
             ItemEffect.HORSERACE_3RD_PLACE_WINNING_SCORE_EVENT,
             ItemEffect.HORSERACE_WIN_BET_SCORE_EVENT
-        ], 0.1, "Increases points gained from winning horse races and bets by", 4)],
+        ], 0.1, "Increases points gained from winning horse races and bets by", 0, 4)],
 
         // Items
 
         ["Merchant", new ItemEffect("Merchant", ItemEffect.ITEMS_PLUGIN, [ItemEffect.ITEMS_BUY_REASON], -0.1,
-            "Receive", 1, "of the buying price back after buying an item from the shop")],
+            "Receive", 0, 1, "of the buying price back after buying an item from the shop")],
 
         ["Enhancer", new ItemEffect("Enhancer", ItemEffect.ITEMS_PLUGIN, [ItemEffect.ITEMS_UPGRADE_REASON], -0.1,
-            "Receive", 1, "of the upgrade price back after upgrading an item")],
+            "Receive", 0, 1, "of the upgrade price back after upgrading an item")],
     ]);
 
     constructor(
         public readonly name: string,
-        public readonly plugin: string,
-        public readonly reasons: string[],
-        public readonly modifier: number,
+        public readonly userScoreChangePluginName: string,
+        public readonly userScoreChangePluginReasons: string[],
+        public readonly userScoreChange: number,
         public readonly description: string,
+        public readonly killOdds: number = 0,
         public readonly maxRank: number = 1,
         public readonly postDescription: string | null = null) { }
 }

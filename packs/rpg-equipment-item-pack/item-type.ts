@@ -2,11 +2,11 @@ import { EquipmentSlot } from "../../item/equipment-slot";
 
 export class ItemType {
 
-    public static readonly ONE_HANDED = new ItemType("One-Handed", 1.25, [EquipmentSlot.MainHand], ["Main Hand"], 0.1);
-    public static readonly TWO_HANDED = new ItemType("Two-Handed", 2.1875, [EquipmentSlot.MainHand, EquipmentSlot.OffHand], ["Two-Handed"], 0.2);
-    public static readonly OFF_HAND = new ItemType("Off-Hand", 0.75, [EquipmentSlot.OffHand], ["Off-Hand"], -0.1);
-    public static readonly FINGER = new ItemType("Finger", 0.5, [EquipmentSlot.Fingers], ["Finger"], 0);
-    public static readonly NECK = new ItemType("Neck", 0.5, [EquipmentSlot.Neck], ["Neck"], 0);
+    public static readonly ONE_HANDED = new ItemType("One-Handed", 1.25, [EquipmentSlot.MainHand], ["Main Hand"], 0.1, 1);
+    public static readonly TWO_HANDED = new ItemType("Two-Handed", 2.1875, [EquipmentSlot.MainHand, EquipmentSlot.OffHand], ["Two-Handed"], 0.2, 2);
+    public static readonly OFF_HAND = new ItemType("Off-Hand", 0.75, [EquipmentSlot.OffHand], ["Off-Hand"], -0.1, 1);
+    public static readonly FINGER = new ItemType("Finger", 0.5, [EquipmentSlot.Fingers], ["Finger"], 0, 0.5);
+    public static readonly NECK = new ItemType("Neck", 0.5, [EquipmentSlot.Neck], ["Neck"], 0, 0.5);
 
     public static readonly ALL = new Map<string, ItemType>([
         ["One-Handed", this.ONE_HANDED],
@@ -18,9 +18,14 @@ export class ItemType {
 
     constructor(
         public readonly name: string,
-        public readonly itemTypeModifier: number,
+        public readonly userScoreChangeModifier: number,
         public readonly equipmentSlots: EquipmentSlot[],
         public readonly tags: string[],
-        public readonly killOdds: number
+        /**
+         * Certain equipment such as weapons and off-hands have an innate effect on the odds of killing a player,
+         * separate and on top of any item effects that may also alter those odds.
+         */
+        public readonly innateKillOdds: number,
+        public readonly killOddsModifier: number
     ) { }
 }

@@ -67,7 +67,7 @@ export class Plugin extends AbstractPlugin {
         this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
         this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
         this.subscribeToPluginEvent(PluginEvent.PreUserScoreChange, this.onPreUserScoreChange.bind(this));
-        this.subscribeToPluginEvent(PluginEvent.PostUserScoreChange, this.onPostUserScoreChang.bind(this));
+        this.subscribeToPluginEvent(PluginEvent.PostUserScoreChange, this.onPostUserScoreChange.bind(this));
         this.subscribeToPluginEvent(PluginEvent.HourlyTick, this.onHourlyTick.bind(this));
         this.subscribeToPluginEvent(PluginEvent.BotShutdown, () => this.fileIOHelper.persistData(this.chatsItemsData));
         this.subscribeToPluginEvent(PluginEvent.ChatReset, this.onChatReset.bind(this));
@@ -652,7 +652,7 @@ export class Plugin extends AbstractPlugin {
         });
     }
 
-    private onPostUserScoreChang(event: PostUserScoreChangedEventArguments): void {
+    private onPostUserScoreChange(event: PostUserScoreChangedEventArguments): void {
         if (event.nameOfOriginPlugin === AlterUserScoreArgs.DANKTIMESBOT_ORIGIN_NAME &&
             (event.reason === AlterUserScoreArgs.NORMAL_DANKTIME_REASON || event.reason === AlterUserScoreArgs.RANDOM_DANKTIME_REASON) &&
             Math.random() <= event.chat.getSetting<number>(Plugin.RANDOM_ITEM_CHANCE) / 100) {
