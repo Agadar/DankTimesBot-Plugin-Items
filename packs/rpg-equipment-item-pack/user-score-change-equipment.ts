@@ -3,7 +3,6 @@ import { PreUserScoreChangedEventArguments } from "../../../../src/plugin-host/p
 import { ItemProtoType } from "../../item/item-prototype";
 import { ItemAesthetics } from "./item-aesthetics";
 import { ItemEffect } from "./item-effect";
-import { ItemType } from "./item-type";
 
 import { LifeActionEventData } from "../../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 import { LifeAction } from "../../../DankTimesBot-Plugin-Life/model/LifeAction";
