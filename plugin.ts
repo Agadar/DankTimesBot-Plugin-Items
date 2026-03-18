@@ -19,7 +19,7 @@ import { Item } from "./item/item";
 import { ItemProtoType } from "./item/item-prototype";
 import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
 import { RpgConsumablesItemPack } from "./packs/rpg-consumables-item-pack/rpg-consumables-item-pack";
-import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
+import { RpgEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 import { equipmentSlots } from "./item/equipment-slot";
 
 import { LifeActionEventData } from "../DankTimesBot-Plugin-Life/event/LifeActionEventData";
@@ -679,7 +679,7 @@ export class Plugin extends AbstractPlugin {
     private onBotStartup(eventArgs: EmptyEventArguments): void {
         this.chatsItemsData = this.fileIOHelper.loadData();
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgConsumablesItemPack());
-        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RPGEquipmentItemPack());
+        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgEquipmentItemPack());
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new AvatarItemPack());
     }
 
@@ -703,7 +703,7 @@ export class Plugin extends AbstractPlugin {
             Math.random() <= event.chat.getSetting<number>(Plugin.RANDOM_ITEM_CHANCE) / 100) {
 
             // Slightly dirty, but good enough for now.
-            const rpgPack = this.itemPacks.find(item => item.name === "RpgEquipmentItemPack") as RPGEquipmentItemPack;
+            const rpgPack = this.itemPacks.find(item => item.name === "RpgEquipmentItemPack") as RpgEquipmentItemPack;
             const item = rpgPack.generateAnyRandomItem();
             const chatData = this.getOrCreateChatItemsData(event.chat);
             const inventory = chatData.getOrCreateInventory(event.user);
