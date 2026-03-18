@@ -1,5 +1,5 @@
 import { ItemProtoType } from "../../item/item-prototype";
-import { UserScoreChangeEquipment } from "./user-score-change-equipment";
+import { RpgEquipmentProtoType } from "./rpg-equipment-prototype";
 import { ItemAesthetics } from "./item-aesthetics";
 
 export class RpgPrototypes {
@@ -12,23 +12,23 @@ export class RpgPrototypes {
 
     constructor() {
         ItemAesthetics.oneHandedWeapons().forEach((aesthetic) => {
-            const weapon = new UserScoreChangeEquipment(aesthetic);
+            const weapon = new RpgEquipmentProtoType(aesthetic);
             this.oneHandedItemProtoTypes.push(weapon);
         });
         ItemAesthetics.twoHandedWeapons().forEach((aesthetic) => {
-            const weapon = new UserScoreChangeEquipment(aesthetic);
+            const weapon = new RpgEquipmentProtoType(aesthetic);
             this.twoHandedItemProtoTypes.push(weapon);
         });
         ItemAesthetics.offHandWeapons().forEach((aesthetic) => {
-            const weapon = new UserScoreChangeEquipment(aesthetic);
+            const weapon = new RpgEquipmentProtoType(aesthetic);
             this.offHandItemProtoTypes.push(weapon);
         });
         ItemAesthetics.rings().forEach((aesthetic) => {
-            const weapon = new UserScoreChangeEquipment(aesthetic);
+            const weapon = new RpgEquipmentProtoType(aesthetic);
             this.ringItemProtoTypes.push(weapon);
         });
         ItemAesthetics.necklaces().forEach((aesthetic) => {
-            const weapon = new UserScoreChangeEquipment(aesthetic);
+            const weapon = new RpgEquipmentProtoType(aesthetic);
             this.necklaceItemProtoTypes.push(weapon);
         });
     }

@@ -7,7 +7,7 @@ import { ItemEffect } from "./item-effect";
 import { LifeActionEventData } from "../../../DankTimesBot-Plugin-Life/event/LifeActionEventData";
 import { LifeAction } from "../../../DankTimesBot-Plugin-Life/model/LifeAction";
 
-export class UserScoreChangeEquipment extends ItemProtoType {
+export class RpgEquipmentProtoType extends ItemProtoType {
 
     public static readonly ANY = "*";
 
@@ -17,7 +17,7 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         super(
             aesthetics.id,
             "",
-            UserScoreChangeEquipment.pricemodifier * aesthetics.itemType.userScoreChangeModifier,
+            RpgEquipmentProtoType.pricemodifier * aesthetics.itemType.userScoreChangeModifier,
             0.5,
             aesthetics.icon,
             "",
@@ -64,7 +64,7 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         const innateKillOdds = this.aesthetics.itemType.innateKillOdds;
         let description = "";
         let prependNewline = false;
-        let appendInnateKillOdds = (effect.killOdds >= 0 && innateKillOdds < 0) || (effect.killOdds <= 0 && innateKillOdds > 0);
+        const appendInnateKillOdds = (effect.killOdds >= 0 && innateKillOdds < 0) || (effect.killOdds <= 0 && innateKillOdds > 0);
 
         if (effect.userScoreChange !== 0) {
             const userScoreChangeForRank = this.userScoreChangeForRank(rank, effect);
@@ -117,8 +117,8 @@ export class UserScoreChangeEquipment extends ItemProtoType {
         if (effect.userScoreChange === 0) {
             return;
         }
-        if ((effect.userScoreChangePluginName === UserScoreChangeEquipment.ANY || event.nameOfOriginPlugin === effect.userScoreChangePluginName) &&
-            (effect.userScoreChangePluginReasons.includes(UserScoreChangeEquipment.ANY) || effect.userScoreChangePluginReasons.includes(event.reason))) {
+        if ((effect.userScoreChangePluginName === RpgEquipmentProtoType.ANY || event.nameOfOriginPlugin === effect.userScoreChangePluginName) &&
+            (effect.userScoreChangePluginReasons.includes(RpgEquipmentProtoType.ANY) || effect.userScoreChangePluginReasons.includes(event.reason))) {
             event.changeInScore *= (1 + this.userScoreChangeForRank(rank, effect));
         }
     }
