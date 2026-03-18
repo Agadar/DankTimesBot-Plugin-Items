@@ -34,6 +34,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly EQUIP_ALL_CMD = ["equipall", "equipset"];
     private static readonly UNEQUIP_CMD = "unequip";
     private static readonly IDENTIFY_CMD = "identify";
+    private static readonly INSPECT_CMD = "inspect";
     private static readonly USE_CMD = "use";
     private static readonly SHOP_CMD = "shop";
     private static readonly BUY_CMD = "buy";
@@ -83,6 +84,7 @@ export class Plugin extends AbstractPlugin {
         const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Items plugin", this.itemsInfo.bind(this));
         const inventoryCmd = new BotCommand([Plugin.INVENTORY_CMD], "", this.inventory.bind(this), false);
         const equipmentCmd = new BotCommand([Plugin.EQUIPMENT_CMD, "equipped"], "", this.equipment.bind(this), false);
+        const inspectCmd = new BotCommand([Plugin.INSPECT_CMD, "inspect"], "", this.inspect.bind(this), false);
         const identifyCmd = new BotCommand([Plugin.IDENTIFY_CMD, "describe"], "", this.identify.bind(this), false);
         const equipCmd = new BotCommand([Plugin.EQUIP_CMD], "", this.equip.bind(this), false);
         const equipAllCmd = new BotCommand(Plugin.EQUIP_ALL_CMD, "", this.equipAll.bind(this), false);
@@ -93,7 +95,7 @@ export class Plugin extends AbstractPlugin {
         const sellCmd = new BotCommand([Plugin.SELL_CMD], "", this.sell.bind(this), false);
         const upgradeCmd = new BotCommand([Plugin.UPGRADE_CMD], "", this.upgrade.bind(this), false);
         const trashCmd = new BotCommand([Plugin.TRASH_CMD], "", this.trash.bind(this), false);
-        return [infoCmd, inventoryCmd, equipmentCmd, identifyCmd, equipCmd, equipAllCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd, trashCmd];
+        return [infoCmd, inventoryCmd, equipmentCmd, inspectCmd, identifyCmd, equipCmd, equipAllCmd, unequipCmd, useCmd, shopCmd, buyCmd, sellCmd, upgradeCmd, trashCmd];
     }
 
     /**
@@ -128,7 +130,7 @@ export class Plugin extends AbstractPlugin {
                     throw new RangeError("The value must be between 0 and 100!");
                 }
             }
-        )
+        );
         return [priceMultiplierSetting, randomItemChance];
     }
 
@@ -137,18 +139,22 @@ export class Plugin extends AbstractPlugin {
    */
     private itemsInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         return "📦 The Items plugin supports the following commands:\n\n"
+
             + `/${Plugin.INVENTORY_CMD} to show your inventory\n`
             + `/${Plugin.EQUIPMENT_CMD} to show your equipment\n`
+            + `/${Plugin.INSPECT_CMD} to show someone else's equipment\n\n`
+
             + `/${Plugin.IDENTIFY_CMD} to identify an item\n`
             + `/${Plugin.EQUIP_CMD} to equip an item\n`
             + `/${Plugin.EQUIP_ALL_CMD[0]} to equip all items of a type\n`
             + `/${Plugin.UNEQUIP_CMD} to unequip an item\n`
-            + `/${Plugin.USE_CMD} to use an item\n\n`
+            + `/${Plugin.USE_CMD} to use an item\n`
+            + `/${Plugin.UPGRADE_CMD} to upgrade an item\n`
+            + `/${Plugin.TRASH_CMD} to trash an item\n\n`
+
             + `/${Plugin.SHOP_CMD} to show all items for sale in the shop\n`
             + `/${Plugin.BUY_CMD} to buy an item from the shop\n`
-            + `/${Plugin.SELL_CMD} to sell an item to the shop\n`
-            + `/${Plugin.UPGRADE_CMD} to upgrade an item\n`
-            + `/${Plugin.TRASH_CMD} to trash an item`;
+            + `/${Plugin.SELL_CMD} to sell an item to the shop`;
     }
 
     /**
@@ -194,6 +200,45 @@ export class Plugin extends AbstractPlugin {
         }
         const paginated = ChatItemsData.getPaginatedInventory(equipment, match);
         let equipmentStr = "You have the following items equipped:\n";
+
+        paginated.items.forEach((item) => {
+            equipmentStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
+            if (item.prototype.tradeable) {
+                const price = item.getSellPrice(this.getChatModifier(chat));
+                equipmentStr += ` worth <i>${price}</i> points`;
+            }
+        });
+        return equipmentStr + this.appendPageInfo(paginated.currentPage, paginated.maxPages);
+    }
+
+    /**
+     * inspect command
+     */
+    private inspect(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        let targetUser: User | undefined;
+        const parameters = match ? match.split(" ") : [];
+
+        if (!!msg.reply_to_message?.from?.id && !msg.reply_to_message.from.is_bot) {
+            targetUser = chat.getOrCreateUser(msg.reply_to_message.from.id);
+
+        } else if (parameters.length > 0 && parameters[0].includes("@")) {
+            const username = parameters[0].replace("@", "");
+            targetUser = Array.from(chat.users.values()).find((u) => u.name.toLowerCase() === username.toLowerCase());
+        }
+
+        if (!targetUser) {
+            return "😞 You have to reply to or specify a user, e.g. /inspect @User";
+        }
+        const chatItemsData = this.getOrCreateChatItemsData(chat);
+        const equipment = chatItemsData.getOrCreateEquipment(targetUser);
+        chatItemsData.lastOpenedInventory = equipment;
+
+        if (equipment.length === 0) {
+            return "👐 They have nothing equipped.";
+        }
+        const pageNumberText = parameters.length > 0 ? parameters[parameters.length - 1] : "";
+        const paginated = ChatItemsData.getPaginatedInventory(equipment, pageNumberText);
+        let equipmentStr = "They have the following items equipped:\n";
 
         paginated.items.forEach((item) => {
             equipmentStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
@@ -368,7 +413,7 @@ export class Plugin extends AbstractPlugin {
             return "🛒 The shop is all out of stock.";
         }
         const paginated = ChatItemsData.getPaginatedInventory(chatItemsData.shopInventory, match);
-        let inventoryStr = `The shop has the following item(s) for sale:\n`;
+        let inventoryStr = "The shop has the following item(s) for sale:\n";
 
         paginated.items.forEach((item) => {
             inventoryStr += `\n[${paginated.indexStart++}] ${item.prettyName()}`;
