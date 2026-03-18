@@ -18,7 +18,7 @@ import { FileIOHelper } from "./file-io-helper";
 import { Item } from "./item/item";
 import { ItemProtoType } from "./item/item-prototype";
 import { AvatarItemPack } from "./packs/avatar-item-pack/avatar-item-pack";
-import { BasicItemPack } from "./packs/basic-item-pack/basic-item-pack";
+import { RpgConsumablesItemPack } from "./packs/rpg-consumables-item-pack/rpg-consumables-item-pack";
 import { RPGEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipment-item-pack";
 import { equipmentSlots } from "./item/equipment-slot";
 
@@ -678,7 +678,7 @@ export class Plugin extends AbstractPlugin {
 
     private onBotStartup(eventArgs: EmptyEventArguments): void {
         this.chatsItemsData = this.fileIOHelper.loadData();
-        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new BasicItemPack());
+        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgConsumablesItemPack());
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RPGEquipmentItemPack());
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new AvatarItemPack());
     }

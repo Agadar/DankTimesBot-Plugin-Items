@@ -5,7 +5,7 @@ import { ItemProtoType } from "../../item/item-prototype";
 import { ItemEffect } from "./item-effect";
 import { RpgPrototypes } from "./rpg-prototypes";
 
-export class RPGEquipmentItemPack extends AbstractItemPack {
+export class RpgEquipmentItemPack extends AbstractItemPack {
 
     private readonly rpgPrototypes = new RpgPrototypes();
     private readonly maxEquipmentsInShop = 3;
