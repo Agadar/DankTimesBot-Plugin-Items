@@ -23,6 +23,8 @@ import { RpgEquipmentItemPack } from "./packs/rpg-equipment-item-pack/rpg-equipm
 import { equipmentSlots } from "./item/equipment-slot";
 
 import { LifeActionEventData } from "../DankTimesBot-Plugin-Life/event/LifeActionEventData";
+import { ForceOccupationChangeEventData, OccupationChange } from "../DankTimesBot-Plugin-Life/event/ForceOccupationChangeEventData";
+import { OccupationEnum } from "../DankTimesBot-Plugin-Life/model/OccupationEnum";
 
 export class Plugin extends AbstractPlugin {
 
@@ -47,10 +49,11 @@ export class Plugin extends AbstractPlugin {
     private static readonly SELL_REASON = "sell.item";
     private static readonly UPGRADE_REASON = "upgrade.item";
 
-    // Events this plugin listens to
+    // Events this plugin listens or publishes to
     private static readonly ADD_ITEM_PACK_REASON = "add.item.pack";
     private static readonly LIFE_PLUGIN_NAME = "Life";
     private static readonly ON_LIFE_ACTION_REASON = "life.on-life-action";
+    private static readonly FORCE_OCCUPATION_CHANGE_REASON = "life.force-occupation-change";
 
     // Settings
     private static readonly ITEMS_PRICES_MULTIPLIER_SETTING = "items.prices.multiplier";
@@ -63,7 +66,7 @@ export class Plugin extends AbstractPlugin {
     private itemPacks = new Array<AbstractItemPack>();
 
     constructor() {
-        super("Items", "1.1.0-alpha");
+        super("Items", "1.1.0");
 
         this.subscribeToPluginEvent(PluginEvent.BotStartup, this.onBotStartup.bind(this));
         this.subscribeToPluginEvent(PluginEvent.NightlyUpdate, this.onNightlyUpdate.bind(this));
@@ -678,7 +681,7 @@ export class Plugin extends AbstractPlugin {
 
     private onBotStartup(eventArgs: EmptyEventArguments): void {
         this.chatsItemsData = this.fileIOHelper.loadData();
-        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgConsumablesItemPack());
+        this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgConsumablesItemPack(this.forceHospitalRelease.bind(this)));
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new RpgEquipmentItemPack());
         this.fireCustomEvent(Plugin.ADD_ITEM_PACK_REASON, new AvatarItemPack());
     }
@@ -750,6 +753,14 @@ export class Plugin extends AbstractPlugin {
         }
     }
 
+    private onChatReset(eventArgs: ChatResetEventArguments): void {
+        const chatId = eventArgs.chat.id;
+        this.chatsItemsData.delete(chatId);
+    }
+
+    /**
+     * For manipulating score gains and such on Life actions.
+     */
     private onLifeAction(eventArgs: CustomEventArguments): void {
         const args = eventArgs.eventData as LifeActionEventData;
         const chat = this.getOrCreateChatItemsData(args.chat);
@@ -768,8 +779,18 @@ export class Plugin extends AbstractPlugin {
         });
     }
 
-    private onChatReset(eventArgs: ChatResetEventArguments): void {
-        const chatId = eventArgs.chat.id;
-        this.chatsItemsData.delete(chatId);
+    /**
+     * For forcing a hospital release on consuming a healing potion.
+     * Can be expanded in the future to allow for other similar stuff.
+     */
+    public forceHospitalRelease(chat: Chat, user: User): boolean {
+        const eventData = {
+            chat: chat,
+            user: user,
+            occupation: OccupationEnum.HOSPITAL,
+            occupationChange: OccupationChange.RELEASE
+        } as ForceOccupationChangeEventData;
+        this.fireCustomEvent(Plugin.FORCE_OCCUPATION_CHANGE_REASON, eventData);
+        return eventData.success;
     }
 }
